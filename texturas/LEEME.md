@@ -25,3 +25,17 @@ texturas/
 Un árbol usa el juego que dice su «Material» en el editor. Si el juego no
 está instalado, el árbol se ve en clay. La resolución se elige en el menú
 Árboles > Resolución de texturas.
+
+## Estilos
+
+Además del realista, cada especie trae `cartoon/` y `estilizado/` dentro de su carpeta,
+con la misma estructura (solo a 1K: se usa la resolución más cercana):
+
+```
+texturas/roble/cartoon/1k/corteza_color.jpg …
+texturas/roble/estilizado/1k/corteza_color.jpg …
+```
+
+Si un estilo no trae algún canal, se usa el del realista. El estilo se elige en el menú
+Árboles > Estilo de texturas. Para regenerarlos desde el realista:
+`python3 herramientas/texturas_estilos.py [carpeta] [especie …]`.

@@ -4,7 +4,7 @@ Editor de árboles para Autodesk Maya 2026 y 2027 (Windows y macOS), pensado par
 Montas el árbol a mano con módulos (tronco, ramas y follaje), lo guardas en tu biblioteca y lo
 plantas en la escena como instancias ligadas al original.
 
-> **Versión 0.9.** Editor, follaje, biblioteca, jardín con copias ligadas, 19 especies de serie
+> **Versión 0.10.** Editor, follaje, biblioteca, jardín con copias ligadas, 19 especies de serie
 > con texturas de corteza y hoja, y guía para alumnos en [GUIA_ALUMNOS.md](GUIA_ALUMNOS.md).
 
 No necesita instalar nada más: funciona con el Python que trae Maya.
@@ -34,6 +34,7 @@ en el Plug-in Manager.
 | Herramientas rápidas | Árbol de ejemplo, generar versión ligera, cuadros en la corteza |
 | Carpeta de la biblioteca... | Cambia dónde se guardan tus árboles |
 | Resolución de texturas | 512 (aula), 1K (recomendada), 2K o 4K (render final); cambia también las texturas ya puestas en la escena |
+| Estilo de texturas | Realista, Cartoon (colores planos) o Estilizado (pintado); cambia también los árboles de la escena |
 | Crear materiales clay | Crea `arboles_clay_corteza` y `arboles_clay_hoja` (standardSurface, se ven en el visor y en Arnold) |
 | Comprobar instalación | Versión de Maya, Arnold y carpeta de la biblioteca |
 
@@ -46,7 +47,9 @@ ven con el modo texturizado (tecla 6). Los árboles guardados con versiones ante
 no tienen material: toman el de la especie que indique su nombre, o el clay si no coincide. Las cortezas
 se generan con `herramientas/texturas_corteza.py` (Substance 3D Designer, `sbsrender`) y
 las hojas con `herramientas/texturas_hojas.py` (numpy y Pillow). Ver `texturas/LEEME.md`.
-Las cortezas parten de materiales de serie de Adobe Substance: úsalas en clase y revisa
+Los estilos cartoon y estilizado están en `texturas/<especie>/<estilo>/1k/` y salen del
+realista con `herramientas/texturas_estilos.py` (numpy y Pillow); si un estilo no trae un
+canal, se usa el realista. Las cortezas parten de materiales de serie de Adobe Substance: úsalas en clase y revisa
 la licencia antes de publicarlas fuera del curso.
 
 ## Idiomas
@@ -61,6 +64,8 @@ Los textos están en `scripts/arboles/i18n/es.json`. Para traducir, copia ese ar
   (sin pruebas ni herramientas), con texturas a 512 y 1K (unos 40 MB). Con `--2k` incluye
   también las de 2K (unos 130 MB) para render final. Si falta una resolución, se usa la más
   cercana. GitHub Actions genera el ZIP ligero en cada push, en «Artifacts».
+- `python3 herramientas/miniaturas_ayuda.py` rehace las miniaturas de la ayuda de los
+  deslizadores (`iconos/ayuda/`): el mismo árbol con un valor bajo y uno alto.
 - `python3 herramientas/vista_previa.py` dibuja cada especie sin Maya (frente, 3/4 y planta)
   con su número de triángulos, para ajustar siluetas rápido.
 - Pruebas sin Maya: `python3 -m unittest discover -s tests` (se ejecutan en Windows, macOS y Linux).

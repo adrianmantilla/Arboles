@@ -117,9 +117,70 @@ def main():
 
     fase2(cmds, tmp)
     texturas(cmds, tmp)
+    estilos_y_material_propio(cmds, tmp)
 
     cmds.unloadPlugin("arboles_plugin")
     comprobar(not cmds.pluginInfo("arboles_plugin", query=True, loaded=True), "el plugin se descarga")
+
+
+def estilos_y_material_propio(cmds, tmp):
+    """Estilos de textura (con las del plugin) y material propio del alumno."""
+    import maya.api.OpenMaya as om
+    from arboles import construir_maya as cm, especies, materiales, plantar
+    from arboles import materiales_propios as mp
+    from arboles import texturas as tx
+    print("Estilos y material propio")
+    cmds.file(new=True, force=True)
+    roble = especies.ESPECIES["roble"]()
+    cm.preparar(roble)
+    grupo = cm.crear(roble, "bajo", "prueba_estilos")
+    rutas = {}
+    for estilo in ("cartoon", "estilizado", "realista"):
+        materiales.cambiar_texturas("1k", estilo)
+        rutas[estilo] = os.path.normpath(cmds.getAttr("arboles_roble_corteza_color.fileTextureName"))
+    comprobar(os.sep + "cartoon" + os.sep in rutas["cartoon"], "estilo cartoon: las texturas apuntan a cartoon/")
+    comprobar(os.sep + "estilizado" + os.sep in rutas["estilizado"], "estilo estilizado: apuntan a estilizado/")
+    comprobar(not any(os.sep + e + os.sep in rutas["realista"] for e in ("cartoon", "estilizado")),
+              "volver al estilo realista")
+    cmds.delete(grupo)
+
+    # material propio con imágenes del alumno
+    from arboles import interfaz_maya
+    biblioteca = interfaz_maya.carpeta_biblioteca()  # como el alumno: en su biblioteca
+    corteza, hoja = os.path.join(tmp, "img", "corteza.png"), os.path.join(tmp, "img", "hoja.png")
+    _png(corteza, (120, 80, 40))
+    _png(hoja, (40, 140, 40))
+    mp.registrar(biblioteca)
+    try:
+        juego = mp.crear(biblioteca, "Mi material", {("corteza", "color"): corteza, ("hoja", "color"): hoja})
+        atlas = tx.ruta(juego, "hoja", "color", "1k")
+        try:
+            from PySide6 import QtGui
+        except ImportError:
+            from PySide2 import QtGui
+        imagen = QtGui.QImage(atlas or "")
+        comprobar(atlas and imagen.width() == 1024 and imagen.height() == 1024,
+                  "el atlas de la hoja propia mide 1024x1024")
+        arbol = especies.ESPECIES["haya"]()
+        arbol.nombre, arbol.material = "Haya de Ana", juego
+        copias = [plantar.plantar(arbol, (i * 500.0, 0.0, 0.0), "bajo") for i in range(2)]
+        maestro = cmds.getAttr(copias[0] + "." + plantar.ATRIBUTO_PLANTADO)
+        archivos = [cmds.getAttr(n + ".fileTextureName") for n in cmds.ls("arboles_{}_*".format(juego), type="file")]
+        comprobar(archivos and all(biblioteca in os.path.normpath(a) for a in archivos),
+                  "el árbol con material propio usa sus imágenes ({} file)".format(len(archivos)))
+        _png(hoja, (200, 180, 40))
+        mp.crear(biblioteca, "Mi material", {("corteza", "color"): corteza, ("hoja", "color"): hoja})
+        rehechos = materiales.rehacer_material_texturas(juego)
+        sin_material = []
+        for forma in cmds.listRelatives(maestro, allDescendents=True, type="mesh", fullPath=True) or []:
+            for camino in om.MDagPath.getAllPathsTo(cm._objeto(forma)):
+                if not om.MFnMesh(camino).getConnectedShaders(camino.instanceNumber())[0]:
+                    sin_material.append(camino.fullPathName())
+        comprobar(rehechos and not sin_material,
+                  "rehacer el material propio lo mantiene en las copias plantadas ({} sin él)".format(len(sin_material)))
+    finally:
+        mp.registrar(biblioteca)
+    cmds.file(new=True, force=True)
 
 
 def _png(ruta, color):
@@ -417,6 +478,82 @@ def fase3(cmds, tmp, bib):
     # borrar una copia no toca el maestro
     cmds.delete(copias[2])
     comprobar(cm.es_arbol(maestro) and len(plantar.plantados()) == 2, "borrar una copia deja el maestro")
+
+    # variaciones por copia: formas distintas (maestros por variante), tamaño e inclinación
+    import random
+    random.seed(5)
+    palmera = ejemplos.crear("palmera")
+    variadas = [plantar.plantar(palmera, (i * 300.0, 50.0, 3000.0), "bajo", variantes=4, tamano=0.2,
+                                inclinacion=8.0) for i in range(16)]
+    formas = sorted({cmds.getAttr(c + "." + plantar.ATRIBUTO_PLANTADO) for c in variadas})
+    comprobar(len(formas) == 4, "4 formas repartidas entre 16 copias ({})".format(len(formas)))
+    comprobar(sorted(plantar.variante_de(f) for f in formas) == [0, 1, 2, 3], "un maestro por variante")
+    comprobar(len({cm.triangulos(f) for f in formas}) > 1 or len({str(cmds.exactWorldBoundingBox(f)) for f in formas}) == 4,
+              "las variantes tienen forma distinta")
+    comprobar(all(cm.arbol_de(f).a_dict() == palmera.a_dict() for f in formas),
+              "las variantes guardan la receta del original (Editar maestro abre el original)")
+    escalas = [cmds.getAttr(c + ".scaleX") for c in variadas]
+    inclinaciones = [max(abs(cmds.getAttr(c + ".rotateX")), abs(cmds.getAttr(c + ".rotateZ"))) for c in variadas]
+    comprobar(all(0.8 - 1e-6 <= e <= 1.2 + 1e-6 for e in escalas) and len({round(e, 4) for e in escalas}) > 8,
+              "tamaño al azar dentro de ±20 %")
+    comprobar(all(i <= 8.0 + 1e-6 for i in inclinaciones) and max(inclinaciones) > 1.0, "inclinación al azar hasta 8°")
+    otra = palmera.copiar()
+    for m in otra.modulos.values():
+        if m.tipo == "rama":
+            m.fijar("densidad", 0.5)
+    comprobar(plantar.actualizar_maestros(otra) == 4, "actualizar el original rehace sus 4 variantes")
+    comprobar(all(cm.arbol_de(f).a_dict() == otra.a_dict() for f in formas), "las variantes siguen al original")
+    cmds.delete(variadas)
+
+    # «Usar como hoja»: una malla del alumno como hoja de un árbol
+    from arboles import follaje, hoja_maya
+    hoja = cmds.polyPlane(width=8, height=20, subdivisionsX=2, subdivisionsY=3, axis=(0, 0, 1), name="hoja_alumno")[0]
+    cmds.move(0, 10, 0, hoja)
+    cmds.select(hoja)
+    forma = hoja_maya.malla_seleccionada()
+    datos = hoja_maya.leer_hoja(forma)
+    tipo = bib.guardar_hoja("Hoja alumno", datos)
+    ys = [p[1] for p in datos["vertices"]]
+    comprobar(tipo == "propia:Hoja_alumno" and len(datos["vertices"]) == 12 and abs(min(ys)) < 1e-6
+              and abs(max(ys) - 1.0) < 1e-6, "leer la malla del alumno como hoja (tallo abajo, largo 1)")
+    comprobar(len(datos["uvs"]) == 12, "la hoja conserva sus UV")
+    haya = ejemplos.crear("haya")
+    for m in haya.modulos.values():
+        if m.valores.get("follaje", "ninguno") != "ninguno":
+            m.fijar("follaje", tipo)
+    cm.preparar(haya)
+    grupo = cm.crear(haya, "medio", "prueba_hoja_propia")
+    comprobar(cm.triangulos(grupo) == haya.triangulos("medio") and haya.triangulos("medio") > haya.triangulos(
+        "medio", con_follaje=False), "un árbol con la hoja propia se construye ({} triángulos)".format(cm.triangulos(grupo)))
+    comprobar("Hoja_alumno" in cm.arbol_de(grupo).a_dict().get("hojas_propias", {}),
+              "la receta del árbol lleva su hoja propia")
+    follaje.HOJAS_PROPIAS.clear()
+    comprobar(bib.cargar_hojas() == [tipo], "la biblioteca guarda la hoja propia")
+    cmds.delete(grupo, hoja)
+
+    # horquilla: el tronco se divide en 3 brazos y las ramas de encima nacen en ellos
+    from arboles import modulos as mod
+    castano = ejemplos.crear("castano")
+    castano.tronco.fijar("horquilla", 0.45)
+    castano.tronco.fijar("brazos", 3)
+    cm.preparar(castano)
+    grupo = cm.crear(castano, "medio", "prueba_horquilla")
+    tronco_malla = cm.mallas(grupo)[0]
+    comprobar(cm.triangulos(grupo) == castano.triangulos("medio") and cmds.polyEvaluate(tronco_malla, face=True) > 0,
+              "un árbol con horquilla de 3 brazos se construye ({} triángulos)".format(cm.triangulos(grupo)))
+    castano.calcular()
+    guia = castano.tronco.guia
+    lejos = []
+    for m in castano.hijos(castano.tronco.id):
+        if m.tipo != mod.RAMA or m.valores["posicion"] <= 0.45:
+            continue
+        origen = m.guia.punto(0.0)
+        cerca = min(v_dist(origen, b.punto(k / 40.0)) - b.radio_medio(k / 40.0)
+                    for b in guia.brazos for k in range(41))
+        if cerca > 15.0:
+            lejos.append(round(cerca, 1))
+    comprobar(len(guia.brazos) == 3 and not lejos, "las ramas altas nacen en un brazo ({} lejos: {})".format(len(lejos), lejos))
+    cmds.delete(grupo)
 
     # árboles de ejemplo en una biblioteca vacía
     from arboles.biblioteca import Biblioteca

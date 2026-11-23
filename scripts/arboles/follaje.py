@@ -42,6 +42,81 @@ TIPOS = {
 # foliolos a los dos lados; cada grupo mide lo mismo que la separación entre grupos.
 # Agujas, foliolos y pétalos son tiras estrechas: dos columnas y la mitad de filas.
 _TIRAS = ("aguja", "foliolo", "petalo")
+
+# --- hojas propias del alumno ----------------------------------------------------------
+# Un tipo «propia:<nombre>» usa una malla hecha por el alumno («Usar como hoja» en el editor),
+# repetida en espiral como la hoja ancha. La malla se guarda normalizada: el tallo en el
+# origen, la hoja a lo largo de +Y con largo 1, el ancho en X y el grosor en Z. Cada receta
+# que la usa lleva una copia (Arbol.a_dict), así el árbol funciona en cualquier ordenador.
+PROPIA = "propia:"
+HOJAS_PROPIAS = {}
+MAXIMO_TRIANGULOS_HOJA = 400  # por hoja: un grupo lleva 10 y un árbol cientos de grupos
+_TIPO_PROPIA = (10, 15.0, 15.0, 40.0, 60.0, 0.0, 0.7, "espiral", "propia")
+
+
+def es_propia(tipo):
+    return isinstance(tipo, str) and tipo.startswith(PROPIA)
+
+
+def datos_tipo(tipo):
+    return _TIPO_PROPIA if es_propia(tipo) else TIPOS[tipo]
+
+
+def normalizar_hoja(vertices, caras, uvs=None, uv_caras=None):
+    """Datos de una hoja propia a partir de una malla en cualquier postura.
+
+    ``caras``: listas de índices de vértice; ``uvs``/``uv_caras``: sus UV por esquina (opcional).
+    El lado más largo de la malla es el largo de la hoja y su extremo más bajo es el tallo;
+    el siguiente es el ancho. Si no hay UV, se proyectan de frente.
+    """
+    if not vertices or not caras:
+        raise ValueError("la malla está vacía")
+    triangulos = sum(len(c) - 2 for c in caras)
+    if triangulos > MAXIMO_TRIANGULOS_HOJA:
+        raise ValueError("la hoja tiene {} triángulos (como mucho {})".format(triangulos, MAXIMO_TRIANGULOS_HOJA))
+    minimo = [min(p[i] for p in vertices) for i in range(3)]
+    maximo = [max(p[i] for p in vertices) for i in range(3)]
+    medidas = [maximo[i] - minimo[i] for i in range(3)]
+    largo_eje, ancho_eje, grosor_eje = sorted(range(3), key=lambda i: -medidas[i])
+    largo = medidas[largo_eje]
+    if largo <= 1e-9:
+        raise ValueError("la malla no tiene tamaño")
+    centro = [(maximo[i] + minimo[i]) / 2.0 for i in range(3)]
+    # Al cambiar los ejes de sitio la hoja podría quedar del revés: se corrige con el grosor.
+    signo = 1.0 if (largo_eje - ancho_eje) % 3 == 1 else -1.0
+    puntos = [((p[ancho_eje] - centro[ancho_eje]) / largo, (p[largo_eje] - minimo[largo_eje]) / largo,
+               signo * (p[grosor_eje] - centro[grosor_eje]) / largo) for p in vertices]
+    if not uvs or not uv_caras:
+        uvs = [(x + 0.5, y) for x, y, _ in puntos]
+        uv_caras = [list(c) for c in caras]
+    uvs = [(min(1.0, max(0.0, u)), min(1.0, max(0.0, w))) for u, w in uvs]
+    return {"vertices": [list(p) for p in puntos], "caras": [list(c) for c in caras],
+            "uvs": [list(u) for u in uvs], "uv_caras": [list(c) for c in uv_caras]}
+
+
+def registrar_hoja(nombre, datos):
+    """Deja disponible la hoja propia ``nombre`` (tipo «propia:<nombre>»)."""
+    HOJAS_PROPIAS[nombre] = datos
+    for clave in [c for c in _CACHE if c[0] == PROPIA + nombre]:
+        del _CACHE[clave]
+    return PROPIA + nombre
+
+
+def _hoja_propia(m, origen, eje, lado, largo, datos, cuadro):
+    """Añade a ``m`` la hoja propia, del tallo en ``origen`` hacia ``eje`` (sin deformarla)."""
+    cu, cv = (cuadro % 2) * 0.5, (cuadro // 2) * 0.5
+    normal = v.unitario(v.cruz(eje, lado)) or v.perpendicular(eje)
+    base, base_uv = len(m.vertices), len(m.us)
+    for x, y, z in datos["vertices"]:
+        m.vertices.append(v.suma(origen, v.suma(v.escala(eje, y * largo),
+                                               v.suma(v.escala(lado, x * largo), v.escala(normal, z * largo)))))
+    for u, w in datos["uvs"]:
+        m.us.append(cu + u * 0.5)
+        m.vs.append(cv + w * 0.5)
+    for cara, uv_cara in zip(datos["caras"], datos["uv_caras"]):
+        m.conteos.append(len(cara))
+        m.conexiones += [base + i for i in cara]
+        m.uv_ids += [base_uv + i for i in uv_cara]
 # calidad: filas a lo largo de cada hoja (las agujas usan la mitad)
 CALIDADES = {"alta": 6, "baja": 2}
 _DORADO = math.radians(137.5)
@@ -112,7 +187,9 @@ def _hoja(m, origen, eje, lado, largo, ancho, curva, filas, redondez=0.7, cuadro
 
 def prototipo(tipo, calidad="alta"):
     """Malla del grupo de hojas ``tipo`` en espacio local."""
-    hojas, largo, ancho, tallo, apertura, curva, redondez, disposicion, forma = TIPOS[tipo]
+    hojas, largo, ancho, tallo, apertura, curva, redondez, disposicion, forma = datos_tipo(tipo)
+    if forma == "propia" and tipo[len(PROPIA):] not in HOJAS_PROPIAS:
+        forma = "ovalada"  # la hoja no está en este ordenador: se ve una hoja normal en su lugar
     filas = CALIDADES[calidad]
     m = Malla("{}_{}".format(tipo, calidad))
     azar = random.Random(len(tipo) * 7919)
@@ -158,6 +235,10 @@ def prototipo(tipo, calidad="alta"):
         lado = v.unitario(v.cruz(v.ARRIBA, radial)) or (1.0, 0.0, 0.0)
         if disposicion in ("plano", "pluma"):
             lado = v.unitario(v.cruz((0.0, 0.0, 1.0), eje)) or lado  # la hoja tumbada en el plano
+        if forma == "propia":
+            _hoja_propia(m, (0.0, tallo * t, 0.0), eje, lado, largo * escala, HOJAS_PROPIAS[tipo[len(PROPIA):]],
+                         azar.randrange(4))
+            continue
         _hoja(m, (0.0, tallo * t, 0.0), eje, lado, largo * escala, ancho * escala, curva, filas, redondez,
               azar.randrange(4), forma)
     return m
@@ -210,7 +291,7 @@ def colocar(modulo):
     inicio = 1.0 - val["zona"]
     separacion = 30.0 * tamano / max(val["densidad"], 0.05)
     cantidad = max(0, int(round(guia.largo * val["zona"] / separacion)))  # 0: solo el de la punta
-    pluma = TIPOS[tipo][7] == "pluma"
+    pluma = datos_tipo(tipo)[7] == "pluma"
     if pluma:  # tramos seguidos a lo largo de la rama, sin el grupo extra de la punta
         cantidad = max(1, int(round(guia.largo * val["zona"] / separacion)))
     matrices = []
@@ -235,7 +316,7 @@ def colocar(modulo):
         eje = v.unitario(v.suma(v.escala(eje, 1.0 - val["hacia_arriba"]),
                                 v.escala(v.ARRIBA, val["hacia_arriba"]))) or eje
         x = v.unitario(v.cruz(eje, v.perpendicular(eje)))
-        if TIPOS[tipo][7] in ("plano", "pluma"):
+        if datos_tipo(tipo)[7] in ("plano", "pluma"):
             # Ramilletes planos tumbados de cara al cielo, como crecen para coger luz.
             x = v.unitario(v.cruz(eje, v.ARRIBA)) or x
             x = v.rotar(x, eje, azar.uniform(-0.45, 0.45))

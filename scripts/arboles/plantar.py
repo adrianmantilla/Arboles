@@ -5,6 +5,8 @@ Estructura en la escena::
     arboles_maestros (oculto)
       <arbol>_<nivel>      el maestro: un árbol generado (atributos arbolesReceta,
                            arbolesNivel y arbolesMaestro con el nombre en la biblioteca)
+    <arbol>_<nivel>_v2…  maestros de las variantes (otra forma del mismo árbol, ver
+                           variantes.py); guardan la receta del original y arbolesVariante
     <arbol>_1, <arbol>_2…  cada copia plantada: un transform propio (posición y giro)
                            con el maestro como hijo instanciado (atributo arbolesPlantado)
 
@@ -21,11 +23,13 @@ from maya import cmds
 
 from arboles import acciones
 from arboles import construir_maya as cm
+from arboles import variantes as var
 from arboles.biblioteca import nombre_de_archivo
 
 MAESTROS = "arboles_maestros"
 ATRIBUTO_MAESTRO = "arbolesMaestro"
 ATRIBUTO_PLANTADO = "arbolesPlantado"
+ATRIBUTO_VARIANTE = "arbolesVariante"
 CONTEXTO = "arbolesPlantar"
 NIVEL_POR_DEFECTO = "medio"
 
@@ -40,12 +44,26 @@ def _grupo_maestros():
     return "|" + MAESTROS
 
 
-def nombre_maestro(nombre, nivel):
-    return "{}_{}".format(nombre_de_archivo(nombre), nivel)
+def nombre_maestro(nombre, nivel, variante=0):
+    base = "{}_{}".format(nombre_de_archivo(nombre), nivel)
+    return base if not variante else "{}_v{}".format(base, variante + 1)
 
 
-def ruta_maestro(nombre, nivel):
-    return "|{}|{}".format(MAESTROS, nombre_maestro(nombre, nivel))
+def ruta_maestro(nombre, nivel, variante=0):
+    return "|{}|{}".format(MAESTROS, nombre_maestro(nombre, nivel, variante))
+
+
+def variante_de(ruta):
+    """Número de variante de un maestro (0 si es el original)."""
+    if cmds.attributeQuery(ATRIBUTO_VARIANTE, node=ruta, exists=True):
+        return int(cmds.getAttr(ruta + "." + ATRIBUTO_VARIANTE))
+    return 0
+
+
+def _rehacer(ruta, arbol, nivel, variante):
+    """Reconstruye el maestro con la forma de su variante, guardando la receta del original."""
+    cm.reconstruir(ruta, var.variante(arbol, variante), nivel, guardar_receta=False)
+    cmds.setAttr(ruta + "." + cm.ATRIBUTO_RECETA, arbol.a_json(), type="string")
 
 
 def maestros():
@@ -72,9 +90,9 @@ def _materiales_al_dia(ruta, arbol):
     return not mallas
 
 
-def asegurar_maestro(arbol, nivel=NIVEL_POR_DEFECTO):
-    """Ruta del maestro de ``arbol`` a ``nivel``; lo crea si no existe (fuera del deshacer)."""
-    ruta = ruta_maestro(arbol.nombre, nivel)
+def asegurar_maestro(arbol, nivel=NIVEL_POR_DEFECTO, variante=0):
+    """Ruta del maestro de ``arbol`` a ``nivel`` (y variante); lo crea si no existe (fuera del deshacer)."""
+    ruta = ruta_maestro(arbol.nombre, nivel, variante)
     if cm.existe(ruta):
         if not _materiales_al_dia(ruta, arbol):
             # Maestro de una escena anterior en clay (o con otras texturas): se rehace con las suyas.
@@ -82,7 +100,7 @@ def asegurar_maestro(arbol, nivel=NIVEL_POR_DEFECTO):
             cmds.undoInfo(stateWithoutFlush=False)
             try:
                 cm.preparar(arbol)
-                cm.reconstruir(ruta, arbol.copiar(), nivel)
+                _rehacer(ruta, arbol, nivel, variante)
             finally:
                 cmds.undoInfo(stateWithoutFlush=estado)
         return ruta
@@ -91,10 +109,13 @@ def asegurar_maestro(arbol, nivel=NIVEL_POR_DEFECTO):
     try:
         cm.preparar(arbol)
         padre = _grupo_maestros()
-        grupo = cm.crear(arbol, nivel, nombre_maestro(arbol.nombre, nivel))
+        grupo = cm.crear(var.variante(arbol, variante), nivel, nombre_maestro(arbol.nombre, nivel, variante))
         grupo = cmds.parent(grupo, padre)[0]
+        cmds.setAttr(grupo + "." + cm.ATRIBUTO_RECETA, arbol.a_json(), type="string")  # la del original
         cmds.addAttr(grupo, longName=ATRIBUTO_MAESTRO, dataType="string")
         cmds.setAttr(grupo + "." + ATRIBUTO_MAESTRO, nombre_de_archivo(arbol.nombre), type="string")
+        if variante:
+            cmds.addAttr(grupo, longName=ATRIBUTO_VARIANTE, attributeType="long", defaultValue=variante)
     finally:
         cmds.undoInfo(stateWithoutFlush=estado)
     return ruta
@@ -115,11 +136,11 @@ def actualizar_maestros(arbol):
 
     def hacer():
         for ruta, nivel, _ in antes:
-            cm.reconstruir(ruta, despues.copiar(), nivel)
+            _rehacer(ruta, despues, nivel, variante_de(ruta))
 
     def deshacer():
         for ruta, nivel, viejo in antes:
-            cm.reconstruir(ruta, viejo.copiar(), nivel)
+            _rehacer(ruta, viejo, nivel, variante_de(ruta))
 
     acciones.ejecutar(hacer, deshacer, "Arboles_actualizar_maestros")
     return len(afectados)
@@ -165,18 +186,28 @@ def _nombre_libre(base):
     return "{}_{}".format(base, n)
 
 
-def plantar(arbol, posicion, nivel=NIVEL_POR_DEFECTO, giro=None, girar_al_azar=True):
-    """Planta una copia ligada en ``posicion``. Devuelve el nombre del transform."""
-    maestro = asegurar_maestro(arbol, nivel)
+def plantar(arbol, posicion, nivel=NIVEL_POR_DEFECTO, giro=None, girar_al_azar=True, variantes=1,
+            tamano=0.0, inclinacion=0.0):
+    """Planta una copia ligada en ``posicion``. Devuelve el nombre del transform.
+
+    ``variantes`` (1-4): la copia usa al azar una de esas formas del árbol. ``tamano`` (0.2 = ±20 %)
+    e ``inclinacion`` (grados como mucho) cambian al azar la escala y la inclinación de la copia.
+    """
+    maestro = asegurar_maestro(arbol, nivel, var.sorteo(variantes))
     if giro is None:
         giro = random.uniform(0.0, 360.0) if girar_al_azar else 0.0
+    escala, giro_x, giro_z = var.escala_e_inclinacion(tamano, inclinacion)
     cmds.undoInfo(openChunk=True, chunkName="Arboles_plantar")
     try:
         copia = cmds.group(empty=True, world=True, name=_nombre_libre(nombre_de_archivo(arbol.nombre)))
         cmds.addAttr(copia, longName=ATRIBUTO_PLANTADO, dataType="string")
         cmds.setAttr(copia + "." + ATRIBUTO_PLANTADO, maestro, type="string")
         cmds.parent(maestro, copia, addObject=True, relative=True)  # instancia del maestro
-        cmds.xform(copia, worldSpace=True, translation=posicion, rotation=(0.0, giro, 0.0))
+        cmds.xform(copia, worldSpace=True, translation=posicion)
+        # La copia cuelga del mundo: sus valores locales son los del mundo, tal cual (sin que
+        # Maya los cambie por otro giro equivalente).
+        cmds.setAttr(copia + ".rotate", giro_x, giro, giro_z, type="double3")
+        cmds.setAttr(copia + ".scale", escala, escala, escala, type="double3")
     finally:
         cmds.undoInfo(closeChunk=True)
     return cmds.ls(copia, long=True)[0]
@@ -277,7 +308,8 @@ def punto_en_suelo(origen, direccion):
     return mejor
 
 
-def herramienta(obtener_arbol, nivel=lambda: NIVEL_POR_DEFECTO, girar=lambda: True, al_plantar=None):
+def herramienta(obtener_arbol, nivel=lambda: NIVEL_POR_DEFECTO, girar=lambda: True, al_plantar=None,
+                variacion=lambda: (1, 0.0, 0.0)):
     """Activa la herramienta: cada clic en el visor planta el árbol elegido. Esc para terminar."""
     def pulsar():
         arbol = obtener_arbol()
@@ -287,7 +319,9 @@ def herramienta(obtener_arbol, nivel=lambda: NIVEL_POR_DEFECTO, girar=lambda: Tr
         punto = punto_en_suelo(*cm.rayo_del_visor(x, y))
         if punto is None:
             return
-        copia = plantar(arbol, punto, nivel(), girar_al_azar=girar())
+        variantes, tamano, inclinacion = variacion()
+        copia = plantar(arbol, punto, nivel(), girar_al_azar=girar(), variantes=variantes, tamano=tamano,
+                        inclinacion=inclinacion)
         if al_plantar:
             al_plantar(copia)
 

@@ -17,7 +17,10 @@ def carpeta_preferencias():
 
 
 def cargar_ajustes():
-    return aj.Ajustes(carpeta_preferencias())
+    ajustes = aj.Ajustes(carpeta_preferencias())
+    from arboles import materiales_propios
+    materiales_propios.registrar(ajustes.carpeta_biblioteca)  # sus materiales propios
+    return ajustes
 
 
 # --- Biblioteca -------------------------------------------------------------
@@ -150,9 +153,18 @@ def _cuadros(activo):
 
 def _resolucion(resolucion):
     from arboles import materiales
-    cargar_ajustes().fijar_resolucion_texturas(resolucion)
-    cambiadas = materiales.cambiar_resolucion(resolucion)
+    ajustes = cargar_ajustes()
+    ajustes.fijar_resolucion_texturas(resolucion)
+    cambiadas = materiales.cambiar_texturas(resolucion, ajustes.estilo_texturas)
     print(t("resolucion_cambiada", resolucion=t("resolucion_" + resolucion), texturas=cambiadas))
+
+
+def _estilo(estilo):
+    from arboles import materiales
+    ajustes = cargar_ajustes()
+    ajustes.fijar_estilo_texturas(estilo)
+    cambiadas = materiales.cambiar_texturas(ajustes.resolucion_texturas, estilo)
+    print(t("estilo_cambiado", estilo=t("estilo_" + estilo), texturas=cambiadas))
 
 
 def _editor():
@@ -196,6 +208,14 @@ def crear_menu():
     for resolucion in RESOLUCIONES:
         cmds.menuItem(label=t("resolucion_" + resolucion), radioButton=(resolucion == actual),
                       command=lambda *_, r=resolucion: _resolucion(r))
+    cmds.setParent("..", menu=True)
+    cmds.menuItem(label=t("menu_estilo"), subMenu=True)
+    from arboles.texturas import ESTILOS
+    actual = cargar_ajustes().estilo_texturas
+    cmds.radioMenuItemCollection()
+    for estilo in ESTILOS:
+        cmds.menuItem(label=t("estilo_" + estilo), radioButton=(estilo == actual),
+                      command=lambda *_, e=estilo: _estilo(e))
     cmds.setParent("..", menu=True)
     cmds.menuItem(label=t("menu_carpeta"), command=lambda *_: bienvenida(forzar=True))
     cmds.menuItem(label=t("menu_materiales"), command=lambda *_: _crear_materiales())

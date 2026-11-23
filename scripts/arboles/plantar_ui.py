@@ -96,6 +96,14 @@ class PanelPlantar(QtWidgets.QDialog):
         opciones.addStretch(1)
         capa.addLayout(opciones)
 
+        # Variaciones por copia: formas distintas del mismo árbol, tamaño e inclinación al azar
+        variacion = QtWidgets.QHBoxLayout()
+        self.variantes = self._numero(variacion, "variantes", 1, plantar.var.MAXIMO, 1, 1, "")
+        self.tamano = self._numero(variacion, "variacion_tamano", 0, 40, 5, 0, " %")
+        self.inclinacion = self._numero(variacion, "variacion_inclinacion", 0, 15, 1, 0, "°")
+        variacion.addStretch(1)
+        capa.addLayout(variacion)
+
         botones = QtWidgets.QHBoxLayout()
         for clave, funcion in (("boton_plantar_clic", self._plantar), ("boton_desligar", self._desligar),
                                ("boton_editar_maestro", self._editar), ("boton_ejemplos", self._ejemplos),
@@ -108,6 +116,20 @@ class PanelPlantar(QtWidgets.QDialog):
         self.estado = QtWidgets.QLabel()
         self.estado.setStyleSheet("color: gray;")
         capa.addWidget(self.estado)
+
+    def _numero(self, capa, clave, minimo, maximo, paso, valor, sufijo):
+        capa.addWidget(QtWidgets.QLabel(t("etiqueta_" + clave)))
+        caja = QtWidgets.QSpinBox()
+        caja.setRange(minimo, maximo)
+        caja.setSingleStep(paso)
+        caja.setValue(valor)
+        caja.setSuffix(sufijo)
+        caja.setToolTip(t("ayuda_" + clave))
+        capa.addWidget(caja)
+        return caja
+
+    def _variacion(self):
+        return self.variantes.value(), self.tamano.value() / 100.0, float(self.inclinacion.value())
 
     def _biblioteca(self):
         return Biblioteca(interfaz_maya.carpeta_biblioteca())
@@ -171,7 +193,7 @@ class PanelPlantar(QtWidgets.QDialog):
             return cache[nombre]
 
         plantar.herramienta(arbol, nivel=lambda: self.nivel.currentData(), girar=self.girar.isChecked,
-                            al_plantar=lambda _: self._informe())
+                            al_plantar=lambda _: self._informe(), variacion=self._variacion)
         self._mensaje(t("plantar_ayuda"))
 
     def _desligar(self):

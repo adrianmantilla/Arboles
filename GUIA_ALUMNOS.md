@@ -34,8 +34,12 @@ ciprés, palmera, árbol seco y arbusto. «Solo tronco» es para empezar de cero
 | Doblar una rama a mano | Activa **Tiradores de la curva** y mueve los puntos amarillos. **Enderezar** lo deshace. |
 | Copiar el aspecto de una rama a otras | **Copiar ajustes** en una, selecciona las otras y **Pegar ajustes**. |
 | Reutilizar una rama en otro árbol | **Ramas favoritas**. |
+| Partir el tronco en dos o tres (en Y) | Selecciona el tronco y, en **Avanzado**, sube **Horquilla** (la altura del corte). **Brazos** y **Abertura** dan el resto. |
 | Ver la escala | **Figura humana (1,75 m)**. |
 | Deshacer | Ctrl+Z (Cmd+Z en Mac), en todo. |
+
+Si dejas el ratón quieto sobre un deslizador, sale una frase y un dibujo de qué hace, de
+menos a más.
 
 El deslizador estrella es **Peso**: dobla la rama hacia abajo por su peso. Con él pasas de
 un roble a un sauce.
@@ -95,8 +99,24 @@ para modelar). Las texturas se ven en Arnold y en el visor; en el visor, pulsa *
 En **Árboles › Resolución de texturas** eliges la calidad: 512 o 1K mientras trabajas en
 clase, 2K o 4K para el render final. Cambiarla actualiza los árboles que ya tienes en la escena.
 
-También puedes asignar tus propios materiales. Las UVs de la corteza son limpias: cualquier
-textura repetible encaja.
+En **Árboles › Estilo de texturas** eliges el aspecto de todas las especies: **Realista**,
+**Cartoon** (colores planos, casi sin brillo) o **Estilizado** (como pintado a mano).
+También cambia los árboles que ya tienes en la escena.
+
+### Tu propio material
+
+En el editor, **Material propio…** te deja usar tus imágenes:
+
+- **Corteza**: color (y, si los tienes, relieve y rugosidad). Debe ser **repetible**, sin
+  costuras: las UVs de la corteza dan vueltas enteras alrededor de cada rama.
+- **Hoja**: una sola hoja de pie, con el tallo abajo, la punta arriba y el nervio en el
+  centro. El plugin la repite en cuatro tonos para que el follaje no sea de un verde uniforme.
+
+Hace falta al menos un color. El material se guarda en tu biblioteca (carpeta `materiales`)
+y aparece en la lista **Material** con «(propio)». Si pasas tu biblioteca a otro ordenador,
+tus materiales van con ella. Los estilos Cartoon y Estilizado no cambian tus imágenes.
+
+También puedes asignar a mano cualquier material de Maya a las mallas del árbol.
 
 ## Si algo falla
 

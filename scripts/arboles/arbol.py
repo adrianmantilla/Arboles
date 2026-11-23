@@ -170,7 +170,7 @@ class Arbol(object):
 
     def mallas(self, nivel="denso"):
         self.calcular()
-        return [mod.malla_tubo(m.guia, nivel, m.id, m.valores["torsion"], self.escala_textura)
+        return [mod.malla_modulo(m.guia, nivel, m.id, m.valores["torsion"], self.escala_textura)
                 for m in self._orden()]
 
     def follaje(self):
@@ -203,9 +203,18 @@ class Arbol(object):
 
     # --- receta ---
 
+    def hojas_propias(self):
+        """Nombres de las hojas propias (del alumno) que usan sus ramas."""
+        return sorted({m.valores["follaje"][len(follaje.PROPIA):] for m in self.modulos.values()
+                       if follaje.es_propia(m.valores.get("follaje"))})
+
     def a_dict(self):
-        return {"version": VERSION_RECETA, "nombre": self.nombre, "escala_textura": self.escala_textura,
-                "material": self.material, "modulos": [m.a_dict() for m in self.modulos.values()]}
+        datos = {"version": VERSION_RECETA, "nombre": self.nombre, "escala_textura": self.escala_textura,
+                 "material": self.material, "modulos": [m.a_dict() for m in self.modulos.values()]}
+        propias = {n: follaje.HOJAS_PROPIAS[n] for n in self.hojas_propias() if n in follaje.HOJAS_PROPIAS}
+        if propias:  # la receta lleva sus hojas propias: funciona en cualquier ordenador
+            datos["hojas_propias"] = propias
+        return datos
 
     def a_json(self):
         return json.dumps(self.a_dict(), ensure_ascii=False, indent=2)
@@ -213,6 +222,8 @@ class Arbol(object):
     @classmethod
     def de_dict(cls, datos):
         nombre = datos.get("nombre", "arbol")
+        for hoja, malla in datos.get("hojas_propias", {}).items():
+            follaje.registrar_hoja(hoja, malla)
         material = datos["material"] if "material" in datos else material_por_nombre(nombre)
         arbol = cls(nombre, datos.get("escala_textura", 60.0), material)
         for d in datos.get("modulos", []):

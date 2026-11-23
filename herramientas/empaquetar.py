@@ -3,7 +3,7 @@
     python3 herramientas/empaquetar.py [carpeta de salida] [--2k]
 
 Deja Arboles-<versión>.zip con una carpeta «Arboles» dentro (instalar.py, plug-ins,
-scripts, texturas, README.md y GUIA_ALUMNOS.md). Sin pruebas, herramientas ni cachés.
+scripts, texturas, iconos, README.md y GUIA_ALUMNOS.md). Sin pruebas, herramientas ni cachés.
 Por defecto las texturas van solo a 512 y 1K (ZIP ligero para el aula); con --2k
 incluye también las de 2K y 4K. Si falta una resolución, el plugin usa la más cercana.
 """
@@ -14,7 +14,7 @@ import sys
 import zipfile
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-INCLUIR = ("instalar.py", "README.md", "GUIA_ALUMNOS.md", "plug-ins", "scripts", "texturas")
+INCLUIR = ("instalar.py", "README.md", "GUIA_ALUMNOS.md", "plug-ins", "scripts", "texturas", "iconos")
 
 
 def version():

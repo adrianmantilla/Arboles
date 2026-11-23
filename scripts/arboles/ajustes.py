@@ -10,7 +10,7 @@ import os
 import sys
 
 NOMBRE_CARPETA_BIBLIOTECA = "Arboles"
-SUBCARPETAS_BIBLIOTECA = ("arboles", "miniaturas", "ramas")
+SUBCARPETAS_BIBLIOTECA = ("arboles", "miniaturas", "ramas", "materiales", "hojas")
 _ARCHIVO = "ajustes.json"
 
 
@@ -82,6 +82,19 @@ class Ajustes(object):
         self.datos["resolucion_texturas"] = resolucion
         self.guardar()
 
+    @property
+    def estilo_texturas(self):
+        from arboles.texturas import ESTILO_POR_DEFECTO, ESTILOS
+        e = self.datos.get("estilo_texturas")
+        return e if e in ESTILOS else ESTILO_POR_DEFECTO
+
+    def fijar_estilo_texturas(self, estilo):
+        from arboles.texturas import ESTILOS
+        if estilo not in ESTILOS:
+            raise ValueError(estilo)
+        self.datos["estilo_texturas"] = estilo
+        self.guardar()
+
     def primer_uso(self):
         return not self.carpeta_biblioteca
 
@@ -91,6 +104,8 @@ class Ajustes(object):
         preparar_biblioteca(ruta)
         self.datos["carpeta_biblioteca"] = ruta
         self.guardar()
+        from arboles import materiales_propios
+        materiales_propios.registrar(ruta)  # sus materiales propios, ya desde ahora
         return ruta
 
 
