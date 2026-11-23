@@ -95,6 +95,10 @@ para modelar). Las texturas se ven en Arnold y en el visor; en el visor, pulsa *
 En **Árboles › Resolución de texturas** eliges la calidad: 512 o 1K mientras trabajas en
 clase, 2K o 4K para el render final. Cambiarla actualiza los árboles que ya tienes en la escena.
 
+En **Árboles › Estilo de texturas** eliges el aspecto de todas las especies: **Realista**,
+**Cartoon** (colores planos, casi sin brillo) o **Estilizado** (como pintado a mano).
+También cambia los árboles que ya tienes en la escena.
+
 También puedes asignar tus propios materiales. Las UVs de la corteza son limpias: cualquier
 textura repetible encaja.
 

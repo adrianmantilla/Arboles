@@ -134,6 +134,16 @@ def resolucion_texturas():
         return texturas.RESOLUCION_POR_DEFECTO
 
 
+def estilo_texturas():
+    """Estilo elegido en el menú (realista si no hay preferencias)."""
+    from arboles import texturas
+    try:
+        from arboles import interfaz_maya
+        return interfaz_maya.cargar_ajustes().estilo_texturas
+    except Exception:
+        return texturas.ESTILO_POR_DEFECTO
+
+
 def preparar(arbol=None):
     """Materiales clay y, si ``arbol`` tiene juego de texturas instalado, los suyos.
 
@@ -142,9 +152,9 @@ def preparar(arbol=None):
     corteza = materiales.crear_material(CORTEZA)[1]
     hoja = materiales.crear_material(HOJA)[1]
     if arbol is not None and materiales.tx.existe(arbol.material):
-        resolucion = resolucion_texturas()
-        corteza = materiales.crear_material_texturas(arbol.material, "corteza", resolucion)[1]
-        hoja = materiales.crear_material_texturas(arbol.material, "hoja", resolucion)[1]
+        resolucion, estilo = resolucion_texturas(), estilo_texturas()
+        corteza = materiales.crear_material_texturas(arbol.material, "corteza", resolucion, estilo)[1]
+        hoja = materiales.crear_material_texturas(arbol.material, "hoja", resolucion, estilo)[1]
     return corteza, hoja
 
 

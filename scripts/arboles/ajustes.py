@@ -82,6 +82,19 @@ class Ajustes(object):
         self.datos["resolucion_texturas"] = resolucion
         self.guardar()
 
+    @property
+    def estilo_texturas(self):
+        from arboles.texturas import ESTILO_POR_DEFECTO, ESTILOS
+        e = self.datos.get("estilo_texturas")
+        return e if e in ESTILOS else ESTILO_POR_DEFECTO
+
+    def fijar_estilo_texturas(self, estilo):
+        from arboles.texturas import ESTILOS
+        if estilo not in ESTILOS:
+            raise ValueError(estilo)
+        self.datos["estilo_texturas"] = estilo
+        self.guardar()
+
     def primer_uso(self):
         return not self.carpeta_biblioteca
 

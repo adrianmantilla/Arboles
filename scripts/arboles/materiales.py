@@ -75,7 +75,15 @@ def _archivo(nombre, ruta, color):
     return nodo
 
 
-def crear_material_texturas(juego, parte, resolucion=tx.RESOLUCION_POR_DEFECTO):
+# Brillo especular por estilo: el cartoon casi mate, el estilizado a medias.
+ESPECULAR_ESTILO = {"cartoon": 0.33, "estilizado": 0.66}
+
+
+def _especular(parte, estilo):
+    return CLAY["arboles_clay_" + parte][2] * ESPECULAR_ESTILO.get(estilo, 1.0)
+
+
+def crear_material_texturas(juego, parte, resolucion=tx.RESOLUCION_POR_DEFECTO, estilo=tx.ESTILO_POR_DEFECTO):
     """(material, grupo) con las texturas de ``juego``; clay si el juego no está instalado."""
     nombre = nombre_material(juego, parte)
     if cmds.objExists(nombre):
@@ -86,13 +94,13 @@ def crear_material_texturas(juego, parte, resolucion=tx.RESOLUCION_POR_DEFECTO):
     material = cmds.shadingNode("standardSurface", asShader=True, name=nombre)
     cmds.setAttr(material + ".base", 1.0)
     cmds.setAttr(material + ".baseColor", *clay[0], type="double3")  # si falta la imagen de color
-    cmds.setAttr(material + ".specular", clay[2])
+    cmds.setAttr(material + ".specular", _especular(parte, estilo))
     cmds.setAttr(material + ".specularRoughness", clay[1])
     if parte == "hoja":
         cmds.setAttr(material + ".thinWalled", 1)
         cmds.setAttr(material + ".subsurface", 0.4)
         cmds.setAttr(material + ".subsurfaceColor", *clay[0], type="double3")
-    canales = tx.canales(juego, parte, resolucion)
+    canales = tx.canales(juego, parte, resolucion, estilo=estilo)
     if "color" in canales:
         n = _archivo(nombre + "_color", canales["color"], True)
         cmds.connectAttr(n + ".outColor", material + ".baseColor")
@@ -114,15 +122,24 @@ def crear_material_texturas(juego, parte, resolucion=tx.RESOLUCION_POR_DEFECTO):
     return material, _grupo(material)
 
 
-def cambiar_resolucion(resolucion):
-    """Vuelve a apuntar las texturas de los materiales de la escena a ``resolucion``."""
+def cambiar_texturas(resolucion, estilo=tx.ESTILO_POR_DEFECTO):
+    """Vuelve a apuntar las texturas de los materiales de la escena a ``resolucion`` y ``estilo``."""
     cambiados = 0
     for nodo in cmds.ls("arboles_*_color", "arboles_*_normal", "arboles_*_rugosidad", "arboles_*_translucidez",
                         type="file") or []:
         partes = nodo.split("_")  # arboles, <juego…>, <parte>, <canal>
         juego, parte, canal = "_".join(partes[1:-2]), partes[-2], partes[-1]
-        ruta = tx.ruta(juego, parte, canal, resolucion)
+        ruta = tx.ruta(juego, parte, canal, resolucion, estilo=estilo)
         if ruta:
             cmds.setAttr(nodo + ".fileTextureName", ruta, type="string")
             cambiados += 1
+    for material in cmds.ls("arboles_*_corteza", "arboles_*_hoja", type="standardSurface") or []:
+        if material in CLAY:
+            continue
+        parte = material.rsplit("_", 1)[-1]
+        cmds.setAttr(material + ".specular", _especular(parte, estilo))
     return cambiados
+
+
+def cambiar_resolucion(resolucion, estilo=tx.ESTILO_POR_DEFECTO):
+    return cambiar_texturas(resolucion, estilo)

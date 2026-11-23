@@ -34,6 +34,7 @@ en el Plug-in Manager.
 | Herramientas rápidas | Árbol de ejemplo, generar versión ligera, cuadros en la corteza |
 | Carpeta de la biblioteca... | Cambia dónde se guardan tus árboles |
 | Resolución de texturas | 512 (aula), 1K (recomendada), 2K o 4K (render final); cambia también las texturas ya puestas en la escena |
+| Estilo de texturas | Realista, Cartoon (colores planos) o Estilizado (pintado); cambia también los árboles de la escena |
 | Crear materiales clay | Crea `arboles_clay_corteza` y `arboles_clay_hoja` (standardSurface, se ven en el visor y en Arnold) |
 | Comprobar instalación | Versión de Maya, Arnold y carpeta de la biblioteca |
 
@@ -46,7 +47,9 @@ ven con el modo texturizado (tecla 6). Los árboles guardados con versiones ante
 no tienen material: toman el de la especie que indique su nombre, o el clay si no coincide. Las cortezas
 se generan con `herramientas/texturas_corteza.py` (Substance 3D Designer, `sbsrender`) y
 las hojas con `herramientas/texturas_hojas.py` (numpy y Pillow). Ver `texturas/LEEME.md`.
-Las cortezas parten de materiales de serie de Adobe Substance: úsalas en clase y revisa
+Los estilos cartoon y estilizado están en `texturas/<especie>/<estilo>/1k/` y salen del
+realista con `herramientas/texturas_estilos.py` (numpy y Pillow); si un estilo no trae un
+canal, se usa el realista. Las cortezas parten de materiales de serie de Adobe Substance: úsalas en clase y revisa
 la licencia antes de publicarlas fuera del curso.
 
 ## Idiomas

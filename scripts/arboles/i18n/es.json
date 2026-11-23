@@ -233,5 +233,10 @@
   "etiqueta_variacion_tamano": "Tamaño ±",
   "ayuda_variacion_tamano": "Cada copia sale al azar hasta este porcentaje más grande o más pequeña.",
   "etiqueta_variacion_inclinacion": "Inclinar hasta",
-  "ayuda_variacion_inclinacion": "Cada copia se inclina al azar hacia cualquier lado, como mucho estos grados."
+  "ayuda_variacion_inclinacion": "Cada copia se inclina al azar hacia cualquier lado, como mucho estos grados.",
+  "menu_estilo": "Estilo de texturas",
+  "estilo_realista": "Realista",
+  "estilo_cartoon": "Cartoon (colores planos)",
+  "estilo_estilizado": "Estilizado (pintado)",
+  "estilo_cambiado": "Texturas en estilo {estilo}: {texturas} imágenes cambiadas en la escena."
 }
