@@ -293,3 +293,16 @@ def textura_cuadros(activar=True, repeticiones=8):
         color = materiales.CLAY[CORTEZA][0]
         cmds.setAttr(destino, *color, type="double3")
     return activar
+
+
+def rayo_del_visor(x, y):
+    """((origen), (dirección)) en mundo del píxel (x, y) del visor activo.
+
+    Usa la API 1: en la API 2 la firma de viewToWorld cambia entre versiones
+    de Maya (en 2027 pide cuatro argumentos).
+    """
+    import maya.OpenMaya as om1
+    import maya.OpenMayaUI as omui1
+    origen, direccion = om1.MPoint(), om1.MVector()
+    omui1.M3dView.active3dView().viewToWorld(int(x), int(y), origen, direccion)
+    return (origen.x, origen.y, origen.z), (direccion.x, direccion.y, direccion.z)

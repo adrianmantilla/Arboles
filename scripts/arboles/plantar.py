@@ -227,15 +227,12 @@ def punto_en_suelo(origen, direccion):
 
 def herramienta(obtener_arbol, nivel=lambda: NIVEL_POR_DEFECTO, girar=lambda: True, al_plantar=None):
     """Activa la herramienta: cada clic en el visor planta el árbol elegido. Esc para terminar."""
-    import maya.api.OpenMayaUI as omui
-
     def pulsar():
         arbol = obtener_arbol()
         if arbol is None:
             return
         x, y, _ = cmds.draggerContext(CONTEXTO, query=True, anchorPoint=True)
-        origen, direccion = omui.M3dView.active3dView().viewToWorld(int(x), int(y))
-        punto = punto_en_suelo((origen.x, origen.y, origen.z), (direccion.x, direccion.y, direccion.z))
+        punto = punto_en_suelo(*cm.rayo_del_visor(x, y))
         if punto is None:
             return
         copia = plantar(arbol, punto, nivel(), girar_al_azar=girar())

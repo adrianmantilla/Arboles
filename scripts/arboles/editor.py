@@ -306,13 +306,9 @@ class Editor(object):
 
     def herramienta_clic(self, al_anadir=None):
         """Activa la herramienta: cada clic sobre el árbol añade una rama ahí."""
-        import maya.api.OpenMayaUI as omui
-
         def pulsar():
             x, y, _ = cmds.draggerContext(CONTEXTO_CLIC, query=True, anchorPoint=True)
-            origen, direccion = omui.M3dView.active3dView().viewToWorld(int(x), int(y))
-            id_, punto = self.modulo_bajo_rayo((origen.x, origen.y, origen.z),
-                                               (direccion.x, direccion.y, direccion.z))
+            id_, punto = self.modulo_bajo_rayo(*cm.rayo_del_visor(x, y))
             if id_ is None:
                 return
             nuevo = self.anadir_rama(id_, **self.rama_en_punto(id_, punto))

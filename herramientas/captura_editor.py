@@ -91,6 +91,13 @@ def _capturar_y_salir():
                        completeFilename=os.path.join(_SALIDA, "jardin.png"), widthHeight=(1200, 800),
                        percent=100, showOrnaments=False, forceOverwrite=True)
         print("ARBOLES_CAPTURA jardin")
+        # el rayo del clic en el visor (lo usan Plantar con clic y Añadir rama con clic)
+        from arboles import construir_maya as cm
+        origen, direccion = cm.rayo_del_visor(600, 400)
+        suelo_clic = plantar.punto_en_suelo(origen, direccion)
+        with open(os.path.join(_SALIDA, "rayo.txt"), "w") as f:
+            f.write("origen {}\ndireccion {}\nsuelo {}\n".format(origen, direccion, suelo_clic))
+        print("ARBOLES_CAPTURA rayo")
         print("ARBOLES_CAPTURA OK")
     except Exception:
         traceback.print_exc()
