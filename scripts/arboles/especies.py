@@ -204,12 +204,12 @@ def encina():
     """Tronco corto y torcido, copa redonda, baja y muy densa de hoja pequeña y oscura."""
     return _especie("encina", dict(altura=240, grosor=30, estrechamiento=0.5, inclinacion=6, curvatura=0.2,
                                    raices=0.6, irregularidad=0.5, nudos=4, torsion=30), [
-        dict(n=5, pos=(0.6, 1.0), angulo=52, angulo_punta=-15, largo=1.7, perfil="redondo", caida=0.1,
-             curvatura=0.2, grosor=0.65, irregularidad=0.4, nudos=2, torsion=30, var_angulo=12, tortuoso=0.12),
-        dict(n=(3, 4), pos=(0.3, 1.0), angulo=50, largo=0.5, caida=0.25, curvatura=0.1, grosor=0.6,
-             tortuoso=0.08, follaje="hoja_pequena", densidad=1.0, zona=0.6, tamano=1.5, hacia_arriba=0.5),
-        dict(n=(2, 3), pos=(0.4, 1.0), angulo=45, largo=0.5, caida=0.3, grosor=0.6,
-             follaje="hoja_pequena", densidad=1.6, zona=0.95, tamano=1.5, hacia_arriba=0.5),
+        dict(n=8, pos=(0.5, 1.0), angulo=66, angulo_punta=-30, largo=1.45, perfil="redondo", caida=0.05,
+             curvatura=0.25, grosor=0.65, irregularidad=0.4, nudos=2, torsion=30, var_angulo=12, tortuoso=0.12),
+        dict(n=(4, 5), pos=(0.2, 1.0), angulo=50, largo=0.42, caida=0.08, curvatura=0.15, grosor=0.6,
+             tortuoso=0.08, follaje="hoja_pequena", densidad=0.9, zona=0.9, tamano=2.2, hacia_arriba=0.3),
+        dict(n=(2, 3), pos=(0.4, 1.0), angulo=45, largo=0.45, caida=0.1, grosor=0.6,
+             follaje="hoja_pequena", densidad=1.1, zona=1.0, tamano=2.2, hacia_arriba=0.3),
     ], 101)
 
 

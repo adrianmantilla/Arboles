@@ -80,7 +80,8 @@ class PruebaTexturasDeSerie(unittest.TestCase):
 
     # Las cortezas se generan en un ordenador con Substance Designer: las que ya están en el plugin
     CON_CORTEZA = ("roble", "haya", "pino_pinonero", "abeto", "abedul", "sauce_lloron", "cipres", "olivo",
-                   "arbusto", "encina", "platano", "chopo", "castano", "arce", "arce_otono")
+                   "arbusto", "encina", "platano", "chopo", "castano", "arce", "arce_otono",
+                   "palmera", "almendro", "alcornoque", "arbol_seco")
 
     def test_cada_especie_trae_su_corteza(self):
         for especie in self.CON_CORTEZA:

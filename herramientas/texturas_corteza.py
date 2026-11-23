@@ -264,13 +264,13 @@ def _anillos(color, normal, rugosidad, semilla):
     ondula = 0.012 * np.sin(2 * np.pi * x + azar.uniform(0, 6.3)) + 0.006 * np.sin(4 * np.pi * x + azar.uniform(0, 6.3))
     fase = (y + ondula) * 6.0
     dentro = fase - np.floor(fase)  # 0 en la cicatriz, sube hasta 1 antes de la siguiente
-    surco = np.clip(1.0 - dentro / 0.08, 0, 1) ** 1.5
-    labio = np.clip((dentro - 0.86) / 0.14, 0, 1)  # el borde de la base de la hoja, algo saliente
-    color[:] = color * (1 - 0.45 * surco[..., None]) + np.array((205.0, 192.0, 168.0)) * 0.25 * labio[..., None]
+    surco = np.clip(1.0 - dentro / 0.2, 0, 1) ** 1.2
+    labio = np.clip((dentro - 0.72) / 0.28, 0, 1) ** 2  # el borde de la base de la hoja, algo saliente
+    color[:] = color * (1 - 0.55 * surco[..., None]) + np.array((205.0, 192.0, 168.0)) * 0.25 * labio[..., None]
     rugosidad[:] = np.clip(rugosidad + surco[..., None] * 40.0, 0, 255)
     altura = 1.0 - surco + 0.3 * labio
     gy = np.roll(altura, 1, axis=0) - np.roll(altura, -1, axis=0)
-    normal[:, :, 1] = np.clip(normal[:, :, 1] - gy * 90.0, 0, 255)
+    normal[:, :, 1] = np.clip(normal[:, :, 1] - gy * 220.0, 0, 255)
 
 
 def retocar(mapas, ajustes, semilla=0):
