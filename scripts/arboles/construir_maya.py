@@ -89,7 +89,14 @@ def _nombre(obj):
 
 
 def _asignar(obj_forma, grupo_sombreado):
-    om.MFnSet(_objeto(grupo_sombreado)).addMember(obj_forma)
+    """Asigna el material a la malla en todas sus instancias.
+
+    Si la malla nace bajo un maestro ya plantado tiene varios caminos; con el
+    MObject solo quedaría asignada una instancia y Arnold descartaría el resto.
+    """
+    conjunto = om.MFnSet(_objeto(grupo_sombreado))
+    for camino in om.MDagPath.getAllPathsTo(obj_forma):
+        conjunto.addMember(camino)
 
 
 def grupo_de(material):

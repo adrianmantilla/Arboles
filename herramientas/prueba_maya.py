@@ -325,6 +325,12 @@ def fase3(cmds, tmp, bib):
     comprobar(despues < antes and despues == cambiado.triangulos("medio"),
               "las copias cambian con el maestro ({} → {})".format(antes, despues))
     comprobar(len(om.MDagPath.getAllPathsTo(cm._objeto(maestro))) == 4, "siguen siendo instancias tras actualizar")
+    sin_material = []
+    for forma in cmds.listRelatives(maestro, allDescendents=True, type="mesh", fullPath=True) or []:
+        for camino in om.MDagPath.getAllPathsTo(cm._objeto(forma)):
+            if not om.MFnMesh(camino).getConnectedShaders(camino.instanceNumber())[0]:
+                sin_material.append(camino.fullPathName())
+    comprobar(not sin_material, "todas las copias tienen material tras actualizar ({} sin él)".format(len(sin_material)))
     cmds.undo()
     comprobar(cm.triangulos(maestro) == antes, "deshacer la actualización")
 

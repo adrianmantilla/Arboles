@@ -61,6 +61,7 @@ def _rama_cambiada(copa):
 
 
 def main(carpeta):
+    carpeta = os.path.abspath(carpeta)
     cmds = r1._iniciar()
     cmds.loadPlugin(os.path.join(RAIZ, "plug-ins", "arboles_plugin.py"))
     from arboles import plantar
