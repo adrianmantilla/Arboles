@@ -122,6 +122,10 @@ def _capturar_y_salir():
         with open(os.path.join(_SALIDA, "rayo.txt"), "w") as f:
             f.write("origen {}\ndireccion {}\nsuelo {}\n".format(origen, direccion, suelo_clic))
         print("ARBOLES_CAPTURA rayo")
+        # fase 4: botón Ejemplos en una biblioteca aparte (miniaturas de todas las plantillas)
+        bib_ejemplos = Biblioteca(os.path.join(_SALIDA, "biblioteca_ejemplos"))
+        plantar.anadir_ejemplos(bib_ejemplos)
+        print("ARBOLES_CAPTURA ejemplos")
         print("ARBOLES_CAPTURA OK")
     except Exception:
         traceback.print_exc()
