@@ -4,7 +4,7 @@ Editor de árboles para Autodesk Maya 2026 y 2027 (Windows y macOS), pensado par
 Montas el árbol a mano con módulos (tronco, ramas y follaje), lo guardas en tu biblioteca y lo
 plantas en la escena como instancias ligadas al original.
 
-> **Versión 0.9.** Editor, follaje, biblioteca, jardín con copias ligadas, 19 especies de serie
+> **Versión 0.10.** Editor, follaje, biblioteca, jardín con copias ligadas, 19 especies de serie
 > con texturas de corteza y hoja, y guía para alumnos en [GUIA_ALUMNOS.md](GUIA_ALUMNOS.md).
 
 No necesita instalar nada más: funciona con el Python que trae Maya.
