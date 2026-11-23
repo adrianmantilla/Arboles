@@ -46,7 +46,7 @@ PARAMETROS = {
         "nudos": (1, 0, 10, True),
         # Follaje (sección propia en el editor)
         "follaje": ("hoja_ancha", None, None, False),
-        "densidad": (0.6, 0.0, 1.0, False),
+        "densidad": (0.6, 0.0, 2.0, False),
         "tamano_hoja": (1.0, 0.3, 3.0, False),
         "zona": (0.6, 0.05, 1.0, True),               # parte de la rama con hojas, desde la punta
         "hacia_arriba": (0.4, 0.0, 1.0, True),        # cuánto miran las hojas hacia el cielo
@@ -337,6 +337,17 @@ class Malla(object):
         return sum(c - 2 for c in self.conteos)
 
 
+# Ramitas finas en las versiones generadas: menos lados (de lejos no se nota y ahorra mucho)
+RADIO_RAMITA = 1.5
+
+
+def lados(guia, nivel):
+    n = NIVELES[nivel][0]
+    if nivel != "denso" and guia.radio_base < RADIO_RAMITA:
+        n = max(4, n // 2)
+    return n
+
+
 def segmentos(guia, nivel):
     _, largo_segmento, minimo = NIVELES[nivel]
     n = int(math.ceil(guia.largo / max(guia.radio_base * largo_segmento, minimo)))
@@ -355,7 +366,7 @@ def uv(s, theta, guia, escala_textura):
 
 
 def malla_tubo(guia, nivel, nombre, torsion=0.0, escala_textura=60.0, cerrar_punta=True):
-    lados = NIVELES[nivel][0]
+    lados_ = lados(guia, nivel)
     n_seg = segmentos(guia, nivel)
     torsion = math.radians(torsion)
     m = Malla(nombre)
@@ -363,21 +374,21 @@ def malla_tubo(guia, nivel, nombre, torsion=0.0, escala_textura=60.0, cerrar_pun
         s = k / float(n_seg)
         centro = guia.punto(s)
         _, n, b = guia.marco(s)
-        for j in range(lados):
-            theta = j * _TAU / lados
+        for j in range(lados_):
+            theta = j * _TAU / lados_
             a = theta + torsion * s
             direccion = v.suma(v.escala(n, math.cos(a)), v.escala(b, math.sin(a)))
             m.vertices.append(v.suma(centro, v.escala(direccion, guia.radio(s, theta))))
-        for j in range(lados + 1):  # una UV más por anillo: la costura
-            u_, v_ = uv(s, j * _TAU / lados, guia, escala_textura)
+        for j in range(lados_ + 1):  # una UV más por anillo: la costura
+            u_, v_ = uv(s, j * _TAU / lados_, guia, escala_textura)
             m.us.append(u_)
             m.vs.append(v_)
     for k in range(n_seg):
-        for j in range(lados):
-            j2 = (j + 1) % lados
+        for j in range(lados_):
+            j2 = (j + 1) % lados_
             m.conteos.append(4)
-            m.conexiones += [k * lados + j, k * lados + j2, (k + 1) * lados + j2, (k + 1) * lados + j]
-            fila, sig = k * (lados + 1), (k + 1) * (lados + 1)
+            m.conexiones += [k * lados_ + j, k * lados_ + j2, (k + 1) * lados_ + j2, (k + 1) * lados_ + j]
+            fila, sig = k * (lados_ + 1), (k + 1) * (lados_ + 1)
             m.uv_ids += [fila + j, fila + j + 1, sig + j + 1, sig + j]
     if cerrar_punta:
         t, _, _ = guia.marco(1.0)
@@ -388,9 +399,9 @@ def malla_tubo(guia, nivel, nombre, torsion=0.0, escala_textura=60.0, cerrar_pun
         u_max, v_fin = uv(1.0, _TAU, guia, escala_textura)
         m.us.append(u_max * 0.5)
         m.vs.append(v_fin + guia.radio_medio(1.0) * 0.6 / escala_textura)
-        ultimo, fila = n_seg * lados, n_seg * (lados + 1)
-        for j in range(lados):
+        ultimo, fila = n_seg * lados_, n_seg * (lados_ + 1)
+        for j in range(lados_):
             m.conteos.append(3)
-            m.conexiones += [ultimo + j, ultimo + (j + 1) % lados, i_punta]
+            m.conexiones += [ultimo + j, ultimo + (j + 1) % lados_, i_punta]
             m.uv_ids += [fila + j, fila + j + 1, uv_punta]
     return m

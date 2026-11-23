@@ -3,6 +3,7 @@
 Todo lo que crean se puede editar después. «vacio» es solo un tronco.
 """
 
+from arboles import especies
 from arboles.arbol import Arbol
 
 _DORADO = 137.5
@@ -132,7 +133,7 @@ def con_frondosidad(arbol, frondosidad="normal"):
         m.fijar("densidad", m.valores["densidad"] * densidad)
         m.fijar("tamano_hoja", m.valores["tamano_hoja"] * tamano)
         m.fijar("zona", m.valores["zona"] * zona)
-    if ramitas:
+    if ramitas and len(hojas) <= 24:  # los árboles ya muy ramificados solo ganan densidad
         for i, m in enumerate(hojas):
             if arbol.hijos(m.id):
                 continue
@@ -148,16 +149,20 @@ def con_frondosidad(arbol, frondosidad="normal"):
 
 
 def crear(plantilla, frondosidad="normal"):
-    return con_frondosidad(PLANTILLAS[plantilla](), frondosidad)
+    receta = PLANTILLAS.get(plantilla) or SENCILLAS[plantilla]
+    return con_frondosidad(receta(), frondosidad)
 
 
-PLANTILLAS = {
-    "vacio": vacio,
+# Plantillas del editor: solo tronco y las especies realistas. Las funciones sencillas de arriba
+# (copa_redonda, columnar…) se quedan para las pruebas y como ejemplo de receta a mano.
+PLANTILLAS = dict([("vacio", vacio)] + list(especies.ESPECIES.items()))
+EJEMPLOS = PLANTILLAS
+# Las plantillas sencillas de las primeras versiones (siguen funcionando por su nombre)
+SENCILLAS = {
     "copa_redonda": copa_redonda,
     "columnar": columnar,
     "lloron": lloron,
-    "arbusto": arbusto,
+    "arbusto_sencillo": arbusto,
     "conifera": conifera,
-    "abedul": abedul,
+    "abedul_sencillo": abedul,
 }
-EJEMPLOS = PLANTILLAS

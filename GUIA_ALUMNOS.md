@@ -20,8 +20,8 @@ Aparece el menú **Árboles** en la barra de Maya. Se cargará solo cada vez que
 3. Haz clic en una rama de la lista o en el visor y mueve los deslizadores. Todo cambia al momento.
 4. Ponle un nombre y pulsa **Guardar**. Se guarda con una miniatura.
 
-Plantillas: copa redonda, columnar, llorón, arbusto, conífera y abedul. «Solo tronco» es
-para empezar de cero.
+Plantillas: roble, haya, pino piñonero, abeto, abedul, sauce llorón, ciprés, olivo y arbusto.
+«Solo tronco» es para empezar de cero.
 
 ## 3. Editar
 

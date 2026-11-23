@@ -38,14 +38,14 @@ def main(carpeta):
     r1._ajustes(cmds)
     informe = []
     nombres = [p for p in ejemplos.PLANTILLAS if p != "vacio"]
-    paso = 900.0
+    paso = 1300.0
     for i, plantilla in enumerate(nombres):
         arbol = ejemplos.crear(plantilla)
         x = (i - (len(nombres) - 1) / 2.0) * paso
         cm.crear(arbol, "medio", "catalogo_" + plantilla, posicion=(x, 0.0, 0.0))
         informe.append("{}: {} triángulos ({})".format(plantilla, arbol.triangulos("medio"), arbol.semaforo()[0]))
     ancho = paso * len(nombres)
-    r1._camara(cmds, (0, 600, ancho * 1.3), (0, 380, 0))
+    r1._camara(cmds, (0, 700, ancho * 1.25), (0, 420, 0))
     informe.append("catálogo: " + r1._render(cmds, os.path.join(carpeta, "catalogo")))
 
     # los grupos de hojas, de cerca, en una fila a 2 m del suelo

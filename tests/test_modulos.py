@@ -104,7 +104,7 @@ class PruebaMallas(unittest.TestCase):
         for m in a.modulos.values():
             for nivel in ("denso", "bajo"):
                 malla = mod.malla_tubo(m.guia, nivel, m.id, 0.0, a.escala_textura)
-                lados = mod.NIVELES[nivel][0]
+                lados = mod.lados(m.guia, nivel)
                 n_seg = mod.segmentos(m.guia, nivel)
                 # Última UV del último anillo: s = 1, theta = 2*pi
                 i = n_seg * (lados + 1) + lados

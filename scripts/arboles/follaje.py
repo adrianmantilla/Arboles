@@ -135,7 +135,7 @@ def colocar(modulo):
     tamano = val["tamano_hoja"]
     inicio = 1.0 - val["zona"]
     separacion = 30.0 * tamano / max(val["densidad"], 0.05)
-    cantidad = max(1, int(round(guia.largo * val["zona"] / separacion)))
+    cantidad = max(0, int(round(guia.largo * val["zona"] / separacion)))  # 0: solo el de la punta
     matrices = []
     for i in range(cantidad + 1):
         punta = i == cantidad

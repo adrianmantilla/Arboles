@@ -69,14 +69,14 @@ class Editor(object):
 
     # --- arranque ------------------------------------------------------------
 
-    def abrir(self, plantilla="copa_redonda"):
+    def abrir(self, plantilla="roble"):
         """Recupera el árbol del grupo del editor o crea uno desde ``plantilla``."""
         cm.preparar()
         if cm.es_arbol(GRUPO):
             self.grupo = cmds.ls(GRUPO, long=True)[0]
             self.arbol = cm.arbol_de(self.grupo)
         else:
-            self.arbol = ejemplos.PLANTILLAS[plantilla]()
+            self.arbol = ejemplos.crear(plantilla)
             self.grupo = _sin_deshacer(cm.crear, self.arbol, NIVEL_EDICION, GRUPO)
         self._luz_dos_caras()
         self._avisar()

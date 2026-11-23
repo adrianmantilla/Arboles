@@ -173,7 +173,7 @@ class BibliotecaArboles(unittest.TestCase):
     def test_guardar_y_cargar(self):
         bib = Biblioteca(self.carpeta)
         self.assertEqual(bib.arboles(), [])
-        a = ejemplos.PLANTILLAS["lloron"]()
+        a = ejemplos.PLANTILLAS["sauce_lloron"]()
         a.nombre = "Sauce del patio"
         bib.guardar(a)
         self.assertTrue(bib.existe("Sauce del patio"))

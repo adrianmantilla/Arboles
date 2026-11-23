@@ -32,9 +32,9 @@ def _plantar_jardin(cmds):
     if cmds.attributeQuery("aiAngle", node=forma_sol, exists=True):
         cmds.setAttr(forma_sol + ".aiAngle", 2.0)
 
-    copa = ejemplos.crear("copa_redonda")
+    copa = ejemplos.crear("roble")
     copa.nombre = "Copa redonda"
-    columnar = ejemplos.crear("columnar", "frondosa")
+    columnar = ejemplos.crear("cipres")
     columnar.nombre = "Columnar"
     arbusto = ejemplos.crear("arbusto")
     arbusto.nombre = "Arbusto"

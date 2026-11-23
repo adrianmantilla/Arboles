@@ -202,8 +202,8 @@ def fase2(cmds, tmp):
     e.pegar({"longitud": 77.0, "posicion": 0.01}, [otra])
     comprobar(e.arbol.modulos[otra].valores["longitud"] == 77.0, "pegar ajustes")
     cmds.undo()
-    e.nueva("lloron")
-    comprobar(len(e.arbol.modulos) == len(ejemplos.PLANTILLAS["lloron"]().modulos), "empezar desde plantilla")
+    e.nueva("sauce_lloron")
+    comprobar(len(e.arbol.modulos) == len(ejemplos.PLANTILLAS["sauce_lloron"]().modulos), "empezar desde plantilla")
     cmds.undo()
     comprobar(len(e.arbol.modulos) == n, "deshacer plantilla")
 
@@ -289,7 +289,7 @@ def fase3(cmds, tmp, bib):
 
     print("Fase 3")
     cmds.file(new=True, force=True)
-    arbol = ejemplos.crear("copa_redonda", "frondosa")
+    arbol = ejemplos.crear("roble", "frondosa")
     arbol.nombre = "Roble del patio"
     bib.guardar(arbol)
     arbol = bib.cargar("Roble_del_patio")
