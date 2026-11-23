@@ -348,6 +348,15 @@ def fase3(cmds, tmp, bib):
     cmds.delete(copias[2])
     comprobar(cm.es_arbol(maestro) and len(plantar.plantados()) == 2, "borrar una copia deja el maestro")
 
+    # árboles de ejemplo en una biblioteca vacía
+    from arboles.biblioteca import Biblioteca
+    bib_ejemplos = Biblioteca(os.path.join(tmp, "biblioteca_ejemplos"))
+    nuevos = plantar.anadir_ejemplos(bib_ejemplos)
+    comprobar(len(nuevos) == len(ejemplos.PLANTILLAS) - 1 and len(bib_ejemplos.arboles()) == len(nuevos),
+              "botón Ejemplos llena la biblioteca ({} árboles)".format(len(nuevos)))
+    comprobar(plantar.anadir_ejemplos(bib_ejemplos) == [] and not cmds.ls("arboles_ejemplo_temporal*"),
+              "Ejemplos no repite ni deja restos en la escena")
+
     archivo = os.path.join(tmp, "jardin.ma")
     cmds.file(rename=archivo)
     cmds.file(save=True, type="mayaAscii", force=True)

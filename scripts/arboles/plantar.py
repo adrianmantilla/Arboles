@@ -104,6 +104,36 @@ def actualizar_maestros(arbol):
     return len(afectados)
 
 
+def anadir_ejemplos(biblioteca, titulo=lambda plantilla: plantilla):
+    """Guarda en ``biblioteca`` las plantillas de serie (con miniatura) que aún no estén.
+
+    ``titulo(plantilla)`` da el nombre con el que se guardan. Devuelve los nombres añadidos.
+    """
+    from arboles import editor, ejemplos
+    anadidos = []
+    estado = cmds.undoInfo(query=True, stateWithoutFlush=True)
+    cmds.undoInfo(stateWithoutFlush=False)
+    try:
+        cm.preparar()
+        for plantilla in ejemplos.PLANTILLAS:
+            if plantilla == "vacio":
+                continue
+            arbol = ejemplos.crear(plantilla)
+            arbol.nombre = titulo(plantilla)
+            if biblioteca.existe(arbol.nombre):
+                continue
+            biblioteca.guardar(arbol)
+            grupo = cm.crear(arbol, NIVEL_POR_DEFECTO, "arboles_ejemplo_temporal")
+            try:
+                editor.miniatura_de(grupo, biblioteca.ruta_miniatura(arbol.nombre))
+            finally:
+                cmds.delete(grupo)
+            anadidos.append(arbol.nombre)
+    finally:
+        cmds.undoInfo(stateWithoutFlush=estado)
+    return anadidos
+
+
 # --- copias plantadas ------------------------------------------------------------
 
 def _nombre_libre(base):

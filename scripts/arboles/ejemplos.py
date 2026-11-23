@@ -78,6 +78,41 @@ def arbusto():
     return arbol
 
 
+def conifera():
+    """Cono de pisos de ramas casi horizontales, más cortas hacia arriba, como un abeto."""
+    arbol = Arbol("conifera")
+    tronco = arbol.anadir_tronco(altura=800, grosor=21, estrechamiento=0.12, curvatura=0.03,
+                                 raices=0.35, irregularidad=0.25, nudos=0)
+    pisos, por_piso = 8, 4
+    for p in range(pisos):
+        f = p / float(pisos - 1)
+        for k in range(por_piso):
+            arbol.anadir_rama(tronco, posicion=0.14 + 0.82 * f, giro=(k * 360.0 / por_piso + p * 31.0) % 360,
+                              angulo=80 - 25 * f, longitud=280 - 230 * f, caida=0.35 * (1 - f),
+                              curvatura=0.1, grosor=0.3, estrechamiento=0.1, nudos=0, irregularidad=0.05,
+                              follaje="aguja", densidad=0.6, zona=0.9, tamano_hoja=2.8, hacia_arriba=0.2)
+    return arbol
+
+
+def abedul():
+    """Tronco fino y alto, ramas que suben y puntas colgantes de hoja pequeña y redonda."""
+    arbol = Arbol("abedul")
+    tronco = arbol.anadir_tronco(altura=620, grosor=14, estrechamiento=0.25, inclinacion=5,
+                                 curvatura=0.18, raices=0.2, irregularidad=0.15, nudos=4)
+    principales = 8
+    for i in range(principales):
+        f = i / float(principales - 1)
+        rama = arbol.anadir_rama(tronco, posicion=0.38 + 0.55 * f, giro=(i * _DORADO) % 360,
+                                 angulo=40 - 10 * f, longitud=240 - 110 * f, caida=0.15,
+                                 curvatura=0.3, grosor=0.45, nudos=1, follaje="hoja_redonda",
+                                 densidad=0.4, zona=0.4)
+        arbol.anadir_rama(rama, posicion=0.6, giro=(90 + 60 * i) % 360, angulo=35,
+                          longitud=150 - 50 * f, caida=0.7, curvatura=0.0, grosor=0.6,
+                          estrechamiento=0.15, nudos=0, follaje="hoja_redonda", densidad=0.75,
+                          zona=0.85, hacia_arriba=0.2)
+    return arbol
+
+
 # Frondosidad: cuánto follaje lleva la plantilla. «normal» es la plantilla tal cual.
 FRONDOSIDADES = ("clara", "normal", "frondosa")
 _FRONDOSIDAD = {
@@ -122,5 +157,7 @@ PLANTILLAS = {
     "columnar": columnar,
     "lloron": lloron,
     "arbusto": arbusto,
+    "conifera": conifera,
+    "abedul": abedul,
 }
 EJEMPLOS = PLANTILLAS

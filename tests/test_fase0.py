@@ -87,6 +87,14 @@ class PruebaInstalador(unittest.TestCase):
         import arboles
         self.assertEqual(instalar._version(RAIZ), arboles.__version__)
 
+    def test_ruta_mod_sin_tildes(self):
+        modulos = os.path.join("C:", os.sep, "Users", "José", "Documents", "maya", "modules")
+        raiz = os.path.join("C:", os.sep, "Users", "José", "Documents", "Plugins", "Arboles")
+        rel = instalar.ruta_para_mod(raiz, modulos)
+        self.assertTrue(rel.isascii())
+        self.assertEqual(os.path.normpath(os.path.join(modulos, rel)), os.path.normpath(raiz))
+        self.assertEqual(instalar.ruta_para_mod("/Users/ana/Arboles", modulos), "/Users/ana/Arboles")
+
 
 if __name__ == "__main__":
     unittest.main()

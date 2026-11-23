@@ -385,39 +385,44 @@ class Editor(object):
 
     def miniatura(self, ruta, tamano=256):
         """Captura del árbol en edición desde una cámara a tres cuartos (solo con interfaz)."""
-        if cmds.about(batch=True):
-            return None
-        caja = cmds.exactWorldBoundingBox(self.grupo)
-        centro = [(caja[i] + caja[i + 3]) / 2.0 for i in range(3)]
-        alto = max(caja[4] - caja[1], caja[3] - caja[0], 1.0)
-        ventana = cmds.window(widthHeight=(tamano + 20, tamano + 20), visible=False)
-        cmds.paneLayout()
-        panel = cmds.modelPanel(menuBarVisible=False)
-        camara = cmds.camera(name="arboles_cam_miniatura")[0]
-        try:
-            cmds.viewPlace(camara, eye=(centro[0] + alto * 1.1, centro[1] + alto * 0.15, centro[2] + alto * 1.1),
-                           lookAt=centro, perspective=True)
-            editor = cmds.modelPanel(panel, query=True, modelEditor=True)
-            cmds.modelEditor(editor, edit=True, camera=camara, displayAppearance="smoothShaded", twoSidedLighting=True,
-                             grid=False, headsUpDisplay=False, allObjects=False, polymeshes=True,
-                             selectionHiliteDisplay=False)
-            cmds.isolateSelect(panel, state=True)
-            cmds.select(self.grupo)
-            cmds.isolateSelect(panel, addSelected=True)
-            cmds.select(clear=True)  # si no, la miniatura sale con el color de selección
-            cmds.showWindow(ventana)
-            cmds.viewFit(camara, self.grupo, fitFactor=0.9)
-            cmds.setFocus(panel)
-            cmds.playblast(frame=cmds.currentTime(query=True), format="image", compression="png",
-                           completeFilename=ruta, widthHeight=(tamano, tamano), percent=100,
-                           viewer=False, showOrnaments=False, offScreen=True, forceOverwrite=True)
-        finally:
-            cmds.select(clear=True)
-            cmds.deleteUI(ventana)
-            cmds.delete(camara)
-        return ruta
+        return miniatura_de(self.grupo, ruta, tamano)
 
     def cerrar(self):
         self.quitar_tiradores()
         if not cmds.about(batch=True) and cmds.draggerContext(CONTEXTO_CLIC, exists=True):
             cmds.setToolTo("selectSuperContext")
+
+
+def miniatura_de(grupo, ruta, tamano=256):
+    """Captura del árbol ``grupo`` desde una cámara a tres cuartos (solo con interfaz)."""
+    if cmds.about(batch=True):
+        return None
+    caja = cmds.exactWorldBoundingBox(grupo)
+    centro = [(caja[i] + caja[i + 3]) / 2.0 for i in range(3)]
+    alto = max(caja[4] - caja[1], caja[3] - caja[0], 1.0)
+    ventana = cmds.window(widthHeight=(tamano + 20, tamano + 20), visible=False)
+    cmds.paneLayout()
+    panel = cmds.modelPanel(menuBarVisible=False)
+    camara = cmds.camera(name="arboles_cam_miniatura")[0]
+    try:
+        cmds.viewPlace(camara, eye=(centro[0] + alto * 1.1, centro[1] + alto * 0.15, centro[2] + alto * 1.1),
+                       lookAt=centro, perspective=True)
+        editor = cmds.modelPanel(panel, query=True, modelEditor=True)
+        cmds.modelEditor(editor, edit=True, camera=camara, displayAppearance="smoothShaded", twoSidedLighting=True,
+                         grid=False, headsUpDisplay=False, allObjects=False, polymeshes=True,
+                         selectionHiliteDisplay=False)
+        cmds.isolateSelect(panel, state=True)
+        cmds.select(grupo)
+        cmds.isolateSelect(panel, addSelected=True)
+        cmds.select(clear=True)  # si no, la miniatura sale con el color de selección
+        cmds.showWindow(ventana)
+        cmds.viewFit(camara, grupo, fitFactor=0.9)
+        cmds.setFocus(panel)
+        cmds.playblast(frame=cmds.currentTime(query=True), format="image", compression="png",
+                       completeFilename=ruta, widthHeight=(tamano, tamano), percent=100,
+                       viewer=False, showOrnaments=False, offScreen=True, forceOverwrite=True)
+    finally:
+        cmds.select(clear=True)
+        cmds.deleteUI(ventana)
+        cmds.delete(camara)
+    return ruta

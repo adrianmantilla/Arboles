@@ -27,6 +27,22 @@ def contenido_mod(raiz, version):
             "plug-ins: plug-ins\n").format(version=version, raiz=raiz)
 
 
+def ruta_para_mod(raiz, carpeta_modulos):
+    """La ruta que se escribe en el .mod.
+
+    Maya puede leer mal el .mod si la ruta lleva tildes o eñes (p. ej. un usuario
+    «José» en Windows). En ese caso, si la ruta relativa a la carpeta del .mod no
+    las lleva (lo normal: la carpeta del usuario es común a las dos), se usa esa.
+    """
+    if raiz.isascii():
+        return raiz
+    try:
+        relativa = os.path.relpath(raiz, carpeta_modulos)
+    except ValueError:  # otra unidad en Windows
+        return raiz
+    return relativa if relativa.isascii() else raiz
+
+
 def _version(raiz):
     ruta = os.path.join(raiz, "scripts", "arboles", "__init__.py")
     with open(ruta, encoding="utf-8") as f:
@@ -46,7 +62,7 @@ def instalar():
     os.makedirs(carpeta_modulos, exist_ok=True)
     ruta_mod = os.path.join(carpeta_modulos, "arboles.mod")
     with open(ruta_mod, "w", encoding="utf-8") as f:
-        f.write(contenido_mod(raiz, version))
+        f.write(contenido_mod(ruta_para_mod(raiz, carpeta_modulos), version))
     print("Árboles | módulo escrito en " + ruta_mod)
 
     # Para esta sesión, sin reiniciar Maya. Se quitan del path otras copias

@@ -98,7 +98,8 @@ class PanelPlantar(QtWidgets.QDialog):
 
         botones = QtWidgets.QHBoxLayout()
         for clave, funcion in (("boton_plantar_clic", self._plantar), ("boton_desligar", self._desligar),
-                               ("boton_editar_maestro", self._editar), ("boton_refrescar", self.refrescar)):
+                               ("boton_editar_maestro", self._editar), ("boton_ejemplos", self._ejemplos),
+                               ("boton_refrescar", self.refrescar)):
             botones.addWidget(self._boton(clave, funcion))
         capa.addLayout(botones)
         self.jardin = QtWidgets.QLabel()
@@ -138,6 +139,15 @@ class PanelPlantar(QtWidgets.QDialog):
         color = semaforo_jardin(triangulos)
         self.jardin.setText('<span style="color:{}; font-size:16px;">&#9679;</span> {}'.format(
             _COLORES[color], t("jardin", n=copias, triangulos=_miles(triangulos))))
+
+    def _ejemplos(self):
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        try:
+            nuevos = plantar.anadir_ejemplos(self._biblioteca(), lambda p: t("plantilla_" + p))
+        finally:
+            QtWidgets.QApplication.restoreOverrideCursor()
+        self.refrescar()
+        self._mensaje(t("ejemplos_anadidos", n=len(nuevos)))
 
     def _arbol_elegido(self):
         e = self.lista.currentItem()
