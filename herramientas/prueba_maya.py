@@ -531,6 +531,30 @@ def fase3(cmds, tmp, bib):
     comprobar(bib.cargar_hojas() == [tipo], "la biblioteca guarda la hoja propia")
     cmds.delete(grupo, hoja)
 
+    # horquilla: el tronco se divide en 3 brazos y las ramas de encima nacen en ellos
+    from arboles import modulos as mod
+    castano = ejemplos.crear("castano")
+    castano.tronco.fijar("horquilla", 0.45)
+    castano.tronco.fijar("brazos", 3)
+    cm.preparar(castano)
+    grupo = cm.crear(castano, "medio", "prueba_horquilla")
+    tronco_malla = cm.mallas(grupo)[0]
+    comprobar(cm.triangulos(grupo) == castano.triangulos("medio") and cmds.polyEvaluate(tronco_malla, face=True) > 0,
+              "un árbol con horquilla de 3 brazos se construye ({} triángulos)".format(cm.triangulos(grupo)))
+    castano.calcular()
+    guia = castano.tronco.guia
+    lejos = []
+    for m in castano.hijos(castano.tronco.id):
+        if m.tipo != mod.RAMA or m.valores["posicion"] <= 0.45:
+            continue
+        origen = m.guia.punto(0.0)
+        cerca = min(v_dist(origen, b.punto(k / 40.0)) - b.radio_medio(k / 40.0)
+                    for b in guia.brazos for k in range(41))
+        if cerca > 15.0:
+            lejos.append(round(cerca, 1))
+    comprobar(len(guia.brazos) == 3 and not lejos, "las ramas altas nacen en un brazo ({} lejos: {})".format(len(lejos), lejos))
+    cmds.delete(grupo)
+
     # árboles de ejemplo en una biblioteca vacía
     from arboles.biblioteca import Biblioteca
     bib_ejemplos = Biblioteca(os.path.join(tmp, "biblioteca_ejemplos"))
