@@ -1,3 +1,3 @@
 """Árboles: editor de árboles para Autodesk Maya 2026 y 2027."""
 
-__version__ = "0.7.1"
+__version__ = "0.8.0"

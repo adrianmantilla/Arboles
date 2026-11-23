@@ -54,8 +54,9 @@ PARAMETROS = {
 }
 
 # Parámetros con una lista cerrada de valores
-OPCIONES = {"follaje": ("ninguno", "hoja_ancha", "hoja_fina", "hoja_redonda", "hoja_grande", "plumosa",
-                        "escama", "aguja", "pinocha", "aguja_corta")}
+OPCIONES = {"follaje": ("ninguno", "hoja_ancha", "hoja_roble", "hoja_fina", "hoja_redonda", "hoja_pequena",
+                        "hoja_palmeada", "hoja_castano", "hoja_grande", "plumosa", "escama", "aguja",
+                        "pinocha", "aguja_corta")}
 PARAMETROS_FOLLAJE = ("follaje", "densidad", "tamano_hoja", "zona", "hacia_arriba")
 # Al copiar ajustes no se copia dónde nace la rama
 PARAMETROS_DE_SITIO = ("posicion", "giro")

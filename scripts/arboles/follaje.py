@@ -16,21 +16,28 @@ from arboles import vectores as v
 from arboles.modulos import Malla
 
 # tipo: (hojas, largo de hoja, ancho, largo del tallito, apertura en grados, curvatura de la hoja,
-#        redondez del contorno (más bajo = más redonda), disposición)
-# «espiral»: hojas alrededor del tallito; «plano»: a los dos lados, como una pluma o una ramita de ciprés.
+#        redondez del contorno (más bajo = más redonda), disposición, forma)
+# disposición «espiral»: hojas alrededor del tallito; «plano»: a los dos lados, como una pluma.
+# forma: «ovalada», «lanceolada» (estrecha y en punta), «triangular» (ancha abajo y en punta),
+#        «lobulada» (tres lóbulos por lado, como el roble), «palmeada» (ancha, con lóbulos en punta,
+#        como el arce) o «aguja» (tira fina y plana: pocas caras).
 TIPOS = {
-    "hoja_ancha": (12, 15.0, 9.5, 42.0, 60.0, 0.35, 0.7, "espiral"),     # roble, haya
-    "hoja_fina": (14, 17.0, 3.2, 44.0, 45.0, 0.5, 0.7, "espiral"),       # sauce, olivo
-    "hoja_redonda": (16, 8.5, 8.0, 40.0, 65.0, 0.25, 0.4, "espiral"),    # abedul, álamo
-    "hoja_grande": (6, 30.0, 17.0, 30.0, 55.0, 0.4, 0.6, "espiral"),     # castaño, plátano de sombra
-    "plumosa": (18, 13.0, 3.5, 48.0, 75.0, 0.2, 0.8, "plano"),           # acacia, fresno, mimosa
-    "escama": (24, 9.0, 2.4, 46.0, 38.0, 0.05, 0.9, "plano"),            # ciprés, tuya
-    "aguja": (30, 12.0, 1.4, 20.0, 70.0, 0.1, 0.7, "espiral"),           # pinos en general
-    "pinocha": (18, 15.0, 2.0, 9.0, 82.0, 0.18, 0.7, "espiral"),          # pino piñonero: borla abierta
-    "aguja_corta": (16, 15.0, 4.0, 40.0, 75.0, 0.05, 0.9, "plano"),        # abeto, tejo: ramillete plano
+    "hoja_ancha": (12, 15.0, 9.5, 42.0, 60.0, 0.35, 0.7, "espiral", "ovalada"),      # haya
+    "hoja_roble": (11, 17.0, 10.5, 42.0, 60.0, 0.3, 0.6, "espiral", "lobulada"),     # roble
+    "hoja_fina": (14, 17.0, 3.2, 44.0, 45.0, 0.5, 0.7, "espiral", "lanceolada"),     # sauce, olivo
+    "hoja_redonda": (16, 8.5, 8.0, 40.0, 65.0, 0.25, 0.4, "espiral", "triangular"),  # abedul, álamo
+    "hoja_grande": (6, 30.0, 17.0, 30.0, 55.0, 0.4, 0.6, "espiral", "ovalada"),      # magnolio, catalpa
+    "hoja_palmeada": (7, 20.0, 19.0, 34.0, 58.0, 0.3, 0.5, "espiral", "palmeada"),   # arce, plátano de sombra
+    "hoja_castano": (7, 26.0, 8.0, 34.0, 55.0, 0.35, 0.7, "espiral", "lanceolada"),  # castaño
+    "hoja_pequena": (18, 6.5, 3.8, 34.0, 62.0, 0.15, 0.6, "espiral", "ovalada"),     # encina, boj
+    "plumosa": (18, 13.0, 3.5, 48.0, 75.0, 0.2, 0.8, "plano", "lanceolada"),         # acacia, fresno
+    "escama": (40, 8.0, 2.6, 46.0, 34.0, 0.05, 0.9, "plano", "aguja"),               # ciprés, tuya
+    "aguja": (36, 12.0, 1.4, 20.0, 70.0, 0.1, 0.7, "espiral", "aguja"),              # pinos en general
+    "pinocha": (34, 15.0, 1.6, 9.0, 82.0, 0.18, 0.7, "espiral", "aguja"),            # pino piñonero: borla
+    "aguja_corta": (44, 8.0, 1.5, 44.0, 62.0, 0.12, 0.8, "espiral", "aguja"),        # abeto: escobilla
 }
-# calidad: filas a lo largo de cada hoja
-CALIDADES = {"alta": 4, "baja": 2}
+# calidad: filas a lo largo de cada hoja (las agujas usan la mitad)
+CALIDADES = {"alta": 6, "baja": 2}
 _DORADO = math.radians(137.5)
 
 
@@ -38,37 +45,64 @@ def calidad_de_nivel(nivel):
     return "alta" if nivel in ("denso", "alto") else "baja"
 
 
-def _hoja(m, origen, eje, lado, largo, ancho, curva, filas, redondez=0.7, cuadro=0):
+def contorno(forma, t, redondez=0.7, filas=6):
+    """Medio ancho relativo (0-1) de la hoja a la altura t (0 en el tallo, 1 en la punta)."""
+    base = math.sin(math.pi * min(0.98, 0.08 + t * 0.92)) ** redondez
+    if forma == "lanceolada":
+        return base * (1.0 - 0.35 * t)
+    if forma == "triangular":  # ancha cerca de la base y terminada en punta
+        return math.sin(math.pi * min(0.97, 0.05 + 0.95 * t ** 0.75))
+    if forma == "palmeada":  # ancha hacia la base, con lóbulos en punta y entrantes hondos
+        ancho = math.sin(math.pi * min(0.97, 0.05 + 0.95 * t ** 0.6))
+        k = int(round(t * filas))
+        if filas >= 4 and 0 < k < filas:
+            ancho *= 1.0 if k % 2 else 0.45
+        return ancho
+    if forma == "lobulada" and filas >= 4:
+        # Filas impares: lóbulo; pares: entrante. Tres lóbulos por lado con 6 filas.
+        k = int(round(t * filas))
+        return base * (1.0 if k % 2 else 0.55) if 0 < k < filas else base
+    return base
+
+
+def _hoja(m, origen, eje, lado, largo, ancho, curva, filas, redondez=0.7, cuadro=0, forma="ovalada"):
     """Añade a ``m`` una hoja doblada por el nervio, de ``origen`` hacia ``eje``.
 
     La textura de hoja lleva cuatro variantes de color en 2x2; ``cuadro`` (0-3) dice cuál usa.
+    Las agujas son una tira plana (una cara por fila) y con la mitad de filas.
     """
     cu, cv = (cuadro % 2) * 0.5, (cuadro // 2) * 0.5
+    columnas = (-1.0, 1.0) if forma == "aguja" else (-1.0, 0.0, 1.0)
+    if forma == "aguja":
+        filas = max(1, filas // 2)
+    n = len(columnas)
     normal = v.unitario(v.cruz(eje, lado)) or v.perpendicular(eje)
     base = len(m.vertices)
     base_uv = len(m.us)
     for k in range(filas + 1):
         t = k / float(filas)
-        perfil = math.sin(math.pi * min(0.98, 0.08 + t * 0.92)) ** redondez
+        perfil = contorno(forma, t, redondez, filas)
+        if forma == "aguja":
+            perfil = 1.0 - 0.6 * t * t  # casi del mismo ancho hasta la punta
         centro = v.suma(origen, v.suma(v.escala(eje, largo * t), v.escala(normal, -curva * largo * t * t)))
-        for j, x in enumerate((-1.0, 0.0, 1.0)):
+        for x in columnas:
             pliegue = 0.12 * ancho * (1.0 - abs(x)) * perfil  # el nervio un poco levantado
             p = v.suma(centro, v.suma(v.escala(lado, x * ancho * 0.5 * perfil), v.escala(normal, pliegue)))
             m.vertices.append(p)
             m.us.append(cu + (x + 1.0) * 0.25)
             m.vs.append(cv + t * 0.5)
     for k in range(filas):
-        for j in range(2):
-            a = base + k * 3 + j
+        for j in range(n - 1):
+            a = base + k * n + j
             m.conteos.append(4)
-            m.conexiones += [a, a + 1, a + 4, a + 3]
-            u = base_uv + k * 3 + j
-            m.uv_ids += [u, u + 1, u + 4, u + 3]
+            m.conexiones += [a, a + 1, a + 1 + n, a + n]
+            u = base_uv + k * n + j
+            m.uv_ids += [u, u + 1, u + 1 + n, u + n]
 
 
 def prototipo(tipo, calidad="alta"):
     """Malla del grupo de hojas ``tipo`` en espacio local."""
-    hojas, largo, ancho, tallo, apertura, curva, redondez, disposicion = TIPOS[tipo]
+    hojas, largo, ancho, tallo, apertura, curva, redondez, disposicion, forma = TIPOS[tipo]
     filas = CALIDADES[calidad]
     m = Malla("{}_{}".format(tipo, calidad))
     azar = random.Random(len(tipo) * 7919)
@@ -92,7 +126,7 @@ def prototipo(tipo, calidad="alta"):
         if disposicion == "plano":
             lado = v.unitario(v.cruz((0.0, 0.0, 1.0), eje)) or lado  # la hoja tumbada en el plano
         _hoja(m, (0.0, tallo * t, 0.0), eje, lado, largo * escala, ancho * escala, curva, filas, redondez,
-              azar.randrange(4))
+              azar.randrange(4), forma)
     return m
 
 
