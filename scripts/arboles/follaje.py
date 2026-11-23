@@ -38,8 +38,12 @@ def calidad_de_nivel(nivel):
     return "alta" if nivel in ("denso", "alto") else "baja"
 
 
-def _hoja(m, origen, eje, lado, largo, ancho, curva, filas, redondez=0.7):
-    """Añade a ``m`` una hoja doblada por el nervio, de ``origen`` hacia ``eje``."""
+def _hoja(m, origen, eje, lado, largo, ancho, curva, filas, redondez=0.7, cuadro=0):
+    """Añade a ``m`` una hoja doblada por el nervio, de ``origen`` hacia ``eje``.
+
+    La textura de hoja lleva cuatro variantes de color en 2x2; ``cuadro`` (0-3) dice cuál usa.
+    """
+    cu, cv = (cuadro % 2) * 0.5, (cuadro // 2) * 0.5
     normal = v.unitario(v.cruz(eje, lado)) or v.perpendicular(eje)
     base = len(m.vertices)
     base_uv = len(m.us)
@@ -51,8 +55,8 @@ def _hoja(m, origen, eje, lado, largo, ancho, curva, filas, redondez=0.7):
             pliegue = 0.12 * ancho * (1.0 - abs(x)) * perfil  # el nervio un poco levantado
             p = v.suma(centro, v.suma(v.escala(lado, x * ancho * 0.5 * perfil), v.escala(normal, pliegue)))
             m.vertices.append(p)
-            m.us.append((x + 1.0) * 0.5)
-            m.vs.append(t)
+            m.us.append(cu + (x + 1.0) * 0.25)
+            m.vs.append(cv + t * 0.5)
     for k in range(filas):
         for j in range(2):
             a = base + k * 3 + j
@@ -87,7 +91,8 @@ def prototipo(tipo, calidad="alta"):
         lado = v.unitario(v.cruz(v.ARRIBA, radial)) or (1.0, 0.0, 0.0)
         if disposicion == "plano":
             lado = v.unitario(v.cruz((0.0, 0.0, 1.0), eje)) or lado  # la hoja tumbada en el plano
-        _hoja(m, (0.0, tallo * t, 0.0), eje, lado, largo * escala, ancho * escala, curva, filas, redondez)
+        _hoja(m, (0.0, tallo * t, 0.0), eje, lado, largo * escala, ancho * escala, curva, filas, redondez,
+              azar.randrange(4))
     return m
 
 

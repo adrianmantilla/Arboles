@@ -15,8 +15,10 @@ texturas/
   se usa la más cercana que haya.
 - La corteza debe ser **repetible** (sin costuras en horizontal ni en vertical):
   el plugin da vueltas enteras de textura alrededor de cada rama.
-- La hoja ocupa toda la imagen: a lo ancho de la hoja (el nervio en el centro)
-  y a lo largo, del tallo (abajo) a la punta (arriba).
+- La imagen de hoja lleva **cuatro variantes** de la misma hoja en 2x2 (cada una en
+  un cuarto de la imagen), con algo de color distinto: cada hoja del grupo usa una
+  al azar, para que el follaje no sea de un verde uniforme. En cada cuarto, la hoja
+  va a lo ancho (el nervio en el centro) y a lo largo, del tallo (abajo) a la punta (arriba).
 - Normales en espacio tangente, estilo OpenGL (verde hacia arriba).
 - Color y translucidez en sRGB; normal y rugosidad sin gestión de color.
 

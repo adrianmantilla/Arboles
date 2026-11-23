@@ -19,10 +19,10 @@ import render_fase1 as r1  # noqa: E402
 
 
 def _luces(cmds):
-    suelo = cmds.polyPlane(width=20000, height=20000, subdivisionsX=1, subdivisionsY=1, name="suelo")[0]
+    suelo = cmds.polyPlane(width=200000, height=200000, subdivisionsX=1, subdivisionsY=1, name="suelo")[0]
     tierra = cmds.shadingNode("standardSurface", asShader=True, name="tierra")
     cmds.setAttr(tierra + ".baseColor", 0.22, 0.2, 0.17, type="double3")
-    cmds.setAttr(tierra + ".specular", 0.1)
+    cmds.setAttr(tierra + ".specular", 0.0)  # tierra seca: sin reflejos
     cmds.select(suelo)
     cmds.hyperShade(assign=tierra)
     cielo = cmds.shadingNode("aiSkyDomeLight", asLight=True, name="cielo")
@@ -44,18 +44,22 @@ def main(carpeta, *opciones):
     r1._ajustes(cmds)
     informe = []
     nombres = [p for p in ejemplos.PLANTILLAS if p != "vacio"]
-    paso = 1300.0
-    for i, plantilla in enumerate(nombres):
+    # En tres filas al tresbolillo, de delante (los bajos) a atrás (los altos)
+    orden = sorted(nombres, key=lambda p: ejemplos.crear(p).calcular().tronco.guia.largo)
+    sitios = {}
+    for i, plantilla in enumerate(orden):
+        fila, columna = divmod(i, 3)
+        sitios[plantilla] = ((columna - 1) * 1700.0 + (fila % 2) * 600.0 - 300.0, -fila * 2000.0)
+    for plantilla in nombres:
         arbol = ejemplos.crear(plantilla)
         cm.preparar(arbol)  # materiales con texturas de la especie
-        x = (i - (len(nombres) - 1) / 2.0) * paso
-        cm.crear(arbol, "medio", "catalogo_" + plantilla, posicion=(x, 0.0, 0.0))
+        x, z = sitios[plantilla]
+        cm.crear(arbol, "medio", "catalogo_" + plantilla, posicion=(x, 0.0, z))
         informe.append("{}: {} triángulos ({})".format(plantilla, arbol.triangulos("medio"), arbol.semaforo()[0]))
-    ancho = paso * len(nombres)
-    r1._camara(cmds, (0, 700, ancho * 1.25), (0, 420, 0))
+    r1._camara(cmds, (0, 1300, 5200), (0, 450, -2000))
     informe.append("catálogo: " + r1._render(cmds, os.path.join(carpeta, "catalogo")))
     if "--cerca" in opciones:
-        informe += _cerca(cmds, cm, nombres, paso, carpeta)
+        informe += _cerca(cmds, cm, nombres, carpeta)
 
     # los grupos de hojas, de cerca, en una fila a 2 m del suelo
     for g in cmds.ls("catalogo_*", assemblies=True):
@@ -74,18 +78,20 @@ def main(carpeta, *opciones):
     sys.stdout.flush()
 
 
-def _cerca(cmds, cm, nombres, paso, carpeta):
+def _cerca(cmds, cm, nombres, carpeta):
     """Cada árbol a unos metros, solo: el tronco abajo y la copa encima."""
     informe = []
     grupos = {p: cmds.ls("catalogo_" + p, assemblies=True, long=True)[0] for p in nombres}
-    for i, plantilla in enumerate(nombres):
+    for plantilla in nombres:
         for otra, g in grupos.items():
             cmds.setAttr(g + ".visibility", otra == plantilla)
-        x = (i - (len(nombres) - 1) / 2.0) * paso
         caja = cmds.exactWorldBoundingBox(grupos[plantilla])
-        alto = caja[4] - caja[1]
-        distancia = max(450.0, alto * 0.75)
-        r1._camara(cmds, (x + distancia * 0.35, alto * 0.3, distancia), (x, alto * 0.38, 0))
+        x, z = (caja[0] + caja[3]) / 2.0, (caja[2] + caja[5]) / 2.0
+        alto, ancho = caja[4] - caja[1], max(caja[3] - caja[0], caja[5] - caja[2])
+        distancia = max(450.0, max(alto, ancho) * 1.15)
+        # Desde la altura de una persona (o algo más en los altos), mirando al centro de la copa.
+        r1._camara(cmds, (x + distancia * 0.35, min(170.0 + alto * 0.1, alto * 0.5), z + distancia),
+                   (x, alto * 0.45, z))
         informe.append("cerca {}: {}".format(plantilla, r1._render(cmds, os.path.join(carpeta, "cerca_" + plantilla))))
     for g in grupos.values():
         cmds.setAttr(g + ".visibility", True)

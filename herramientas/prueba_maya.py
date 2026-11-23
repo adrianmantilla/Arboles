@@ -141,6 +141,7 @@ def texturas(cmds, tmp):
     print("Texturas por especie")
     from arboles import construir_maya as cm, especies, materiales
     from arboles import texturas as tx
+    cmds.file(new=True, force=True)  # sin los materiales reales que dejó la fase 2
     carpeta = os.path.join(tmp, "texturas")
     original = tx.carpeta_texturas
     tx.carpeta_texturas = lambda: carpeta

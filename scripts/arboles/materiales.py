@@ -90,7 +90,7 @@ def crear_material_texturas(juego, parte, resolucion=tx.RESOLUCION_POR_DEFECTO):
     cmds.setAttr(material + ".specularRoughness", clay[1])
     if parte == "hoja":
         cmds.setAttr(material + ".thinWalled", 1)
-        cmds.setAttr(material + ".subsurface", 0.25)
+        cmds.setAttr(material + ".subsurface", 0.4)
         cmds.setAttr(material + ".subsurfaceColor", *clay[0], type="double3")
     canales = tx.canales(juego, parte, resolucion)
     if "color" in canales:

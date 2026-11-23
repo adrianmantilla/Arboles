@@ -6,8 +6,9 @@ Necesita numpy y Pillow. Por defecto escribe en ``texturas/`` del plugin::
 
     <especie>/<512|1k>/hoja_color.jpg, hoja_normal.jpg, hoja_rugosidad.jpg, hoja_translucidez.jpg
 
-La hoja ocupa toda la imagen: u a lo ancho (el nervio en el centro) y v a lo
-largo, del tallo (abajo) a la punta (arriba). Las hojas son pequeñas en
+La imagen lleva cuatro variantes de la hoja en 2x2, con algo de color distinto
+(cada hoja del grupo usa una al azar). En cada cuarto, u va a lo ancho (el
+nervio en el centro) y v a lo largo, del tallo (abajo) a la punta (arriba). Las hojas son pequeñas en
 pantalla, así que no hace falta más de 1K: si se pide 2K o 4K, el plugin usa 1K.
 Todo sale de una semilla fija: el resultado es siempre el mismo.
 """
@@ -19,7 +20,7 @@ import numpy as np
 from PIL import Image
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LADO = 1024
+LADO = 512  # cada una de las cuatro variantes; la imagen entera mide 1024
 RESOLUCIONES = {"1k": 1024, "512": 512}
 
 # especie: dibujo, color del haz, color de los nervios, color del borde y la punta, nervios por lado,
@@ -104,9 +105,26 @@ def _srgb(lineal):
     return np.where(lineal <= 0.0031308, lineal * 12.92, 1.055 * np.power(np.clip(lineal, 0, 1), 1 / 2.4) - 0.055)
 
 
+# Variantes en 2x2 (abajo izquierda, abajo derecha, arriba izquierda, arriba derecha):
+# normal, más oscura, más amarilla y algo azulada.
+VARIANTES = ((1.0, 1.0, 1.0), (0.7, 0.76, 0.68), (1.25, 1.15, 0.75), (0.85, 0.98, 1.1))
+
+
 def generar(especie):
+    """{canal: imagen 1024x1024} con las cuatro variantes en 2x2."""
+    partes = [generar_variante(especie, i) for i in range(4)]
+    resultado = {}
+    for canal in partes[0]:
+        abajo = np.concatenate((partes[0][canal], partes[1][canal]), axis=1)
+        arriba = np.concatenate((partes[2][canal], partes[3][canal]), axis=1)
+        resultado[canal] = np.concatenate((arriba, abajo), axis=0)  # la fila 0 es v = 1
+    return resultado
+
+
+def generar_variante(especie, variante=0):
     dibujo, haz, nervio, borde_color, nervios, inclinacion, rugosidad, semilla = HOJAS[especie]
-    azar = np.random.default_rng(semilla)
+    azar = np.random.default_rng(semilla * 10 + variante)
+    tono = np.array(VARIANTES[variante])
     lineas, altura, borde, detalle = _mapas(dibujo, nervios, inclinacion, azar)
     v = 1.0 - np.mgrid[0:LADO, 0:LADO][0] / float(LADO - 1)
     manchas = _fractal(azar, (3, 7, 15))
@@ -114,7 +132,7 @@ def generar(especie):
     color = haz[None, None, :] * (0.82 + 0.36 * manchas[..., None]) * (0.93 + 0.1 * v[..., None])
     color = color * (1 - borde[..., None] * 0.6) + borde_color * borde[..., None] * 0.6
     color = color * (1 - lineas[..., None]) + nervio * lineas[..., None]
-    color = color * (0.94 + 0.12 * detalle[..., None]) * 0.8
+    color = color * (0.94 + 0.12 * detalle[..., None]) * 0.8 * tono
     # Al trasluz la hoja se ve más amarilla y clara; los nervios, algo más oscuros.
     trasluz = np.clip(color * np.array((1.9, 1.75, 1.0)) + np.array((0.03, 0.04, 0.0)), 0, 1)
     trasluz = trasluz * (1 - 0.25 * lineas[..., None])
@@ -123,7 +141,7 @@ def generar(especie):
     return {
         "color": (_srgb(color) * 255).round().astype(np.uint8),
         "translucidez": (_srgb(trasluz) * 255).round().astype(np.uint8),
-        "normal": _normal(altura, fuerza * LADO / 1024.0).round().astype(np.uint8),
+        "normal": _normal(altura, fuerza * LADO / 1024.0).round().astype(np.uint8),  # misma pendiente a cualquier tamaño
         "rugosidad": (rugoso * 255).round().astype(np.uint8),
     }
 
@@ -136,7 +154,7 @@ def guardar(especie, salida):
         os.makedirs(carpeta, exist_ok=True)
         for canal, datos in mapas.items():
             imagen = Image.fromarray(datos)
-            if lado != LADO:
+            if lado != imagen.width:
                 imagen = imagen.resize((lado, lado), Image.LANCZOS)
             ruta = os.path.join(carpeta, "hoja_{}.jpg".format(canal))
             imagen.save(ruta, quality=92 if canal != "normal" else 95, optimize=True)
