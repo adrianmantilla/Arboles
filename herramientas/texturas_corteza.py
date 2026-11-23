@@ -270,7 +270,8 @@ def _anillos(color, normal, rugosidad, semilla):
     rugosidad[:] = np.clip(rugosidad + surco[..., None] * 40.0, 0, 255)
     altura = 1.0 - surco + 0.3 * labio
     gy = np.roll(altura, 1, axis=0) - np.roll(altura, -1, axis=0)
-    normal[:, :, 1] = np.clip(normal[:, :, 1] - gy * 220.0, 0, 255)
+    # Pendiente por píxel escalada con la resolución: el relieve se ve igual a 512 que a 2K
+    normal[:, :, 1] = np.clip(normal[:, :, 1] - gy * alto * 0.7, 0, 255)
 
 
 def retocar(mapas, ajustes, semilla=0):
