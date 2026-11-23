@@ -78,8 +78,17 @@ class Editor(object):
         else:
             self.arbol = ejemplos.PLANTILLAS[plantilla]()
             self.grupo = _sin_deshacer(cm.crear, self.arbol, NIVEL_EDICION, GRUPO)
+        self._luz_dos_caras()
         self._avisar()
         return self
+
+    @staticmethod
+    def _luz_dos_caras():
+        """Las hojas son de una cara: sin luz por las dos caras, la mitad sale negra en el visor."""
+        if cmds.about(batch=True):
+            return
+        for panel in cmds.getPanel(type="modelPanel") or []:
+            cmds.modelEditor(panel, edit=True, twoSidedLighting=True)
 
     def _avisar(self):
         for oyente in list(self.oyentes):
@@ -393,7 +402,7 @@ class Editor(object):
             cmds.viewPlace(camara, eye=(centro[0] + alto * 1.1, centro[1] + alto * 0.15, centro[2] + alto * 1.1),
                            lookAt=centro, perspective=True)
             editor = cmds.modelPanel(panel, query=True, modelEditor=True)
-            cmds.modelEditor(editor, edit=True, camera=camara, displayAppearance="smoothShaded",
+            cmds.modelEditor(editor, edit=True, camera=camara, displayAppearance="smoothShaded", twoSidedLighting=True,
                              grid=False, headsUpDisplay=False, allObjects=False, polymeshes=True)
             cmds.isolateSelect(panel, state=True)
             cmds.select(self.grupo)

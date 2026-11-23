@@ -326,6 +326,8 @@ class VentanaEditor(QtWidgets.QDialog):
         while self.capa_parametros.count():
             w = self.capa_parametros.takeAt(0).widget()
             if w is not None:
+                w.hide()  # deleteLater tarda: sin esto se ven dos juegos de deslizadores
+                w.setParent(None)
                 w.deleteLater()
         self._filas = {}
         if not self._ids:
