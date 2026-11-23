@@ -96,7 +96,7 @@ def _asignar(obj_forma, grupo_sombreado):
     """
     conjunto = om.MFnSet(_objeto(grupo_sombreado))
     for camino in om.MDagPath.getAllPathsTo(obj_forma):
-        conjunto.addMember(camino)
+        conjunto.addMember((camino, om.MObject()))
 
 
 def grupo_de(material):

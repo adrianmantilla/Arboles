@@ -53,7 +53,7 @@ def _plantar_jardin(cmds):
 def _rama_cambiada(copa):
     """La copa con su primera rama más larga y desnuda (para ver el cambio en todas las copias)."""
     nuevo = copa.copiar()
-    rama = max(nuevo.hijos(nuevo.tronco.id), key=lambda m: m.valores.get("posicion", 0.0))
+    rama = max(nuevo.hijos(nuevo.tronco.id), key=lambda m: -m.valores.get("posicion", 0.0))  # la más baja: lateral, se ve bien
     rama.fijar("longitud", rama.valores["longitud"] * 1.7)
     for id_ in [rama.id] + nuevo.descendientes(rama.id):
         nuevo.modulos[id_].fijar("densidad", 0.0)
