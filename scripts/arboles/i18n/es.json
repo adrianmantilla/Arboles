@@ -158,5 +158,9 @@
   "p_zona": "Zona con hojas",
   "ayuda_zona": "Parte de la rama con hojas, contando desde la punta.",
   "p_hacia_arriba": "Hacia el cielo",
-  "ayuda_hacia_arriba": "Cuánto miran las hojas hacia arriba."
+  "ayuda_hacia_arriba": "Cuánto miran las hojas hacia arriba.",
+  "frondosidad_clara": "Clara",
+  "frondosidad_normal": "Normal",
+  "frondosidad_frondosa": "Frondosa",
+  "ayuda_frondosidad": "Cuánto follaje trae la plantilla. «Frondosa» añade además ramitas con hojas; mira el semáforo si vas a plantar muchos."
 }

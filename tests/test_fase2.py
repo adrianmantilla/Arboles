@@ -193,6 +193,22 @@ class BibliotecaArboles(unittest.TestCase):
         self.assertEqual(nombre_de_archivo("///"), "arbol")
 
 
+class Frondosidad(unittest.TestCase):
+    def test_mas_frondosa_mas_hojas(self):
+        for plantilla in ejemplos.PLANTILLAS:
+            if plantilla == "vacio":
+                continue
+            tri = [ejemplos.crear(plantilla, f).triangulos("medio") for f in ejemplos.FRONDOSIDADES]
+            self.assertLess(tri[0], tri[1], plantilla)
+            self.assertLess(tri[1], tri[2], plantilla)
+            self.assertEqual(ejemplos.crear(plantilla).a_dict(), ejemplos.PLANTILLAS[plantilla]().a_dict())
+
+    def test_ninguna_roja(self):
+        for plantilla in ejemplos.PLANTILLAS:
+            for f in ejemplos.FRONDOSIDADES:
+                self.assertNotEqual(ejemplos.crear(plantilla, f).semaforo()[0], "rojo", (plantilla, f))
+
+
 class Textos(unittest.TestCase):
     def test_claves_dinamicas(self):
         claves = i18n.claves()
@@ -205,6 +221,7 @@ class Textos(unittest.TestCase):
         for opciones in mod.OPCIONES.values():
             faltan += ["opcion_" + o for o in opciones if "opcion_" + o not in claves]
         faltan += ["plantilla_" + p for p in ejemplos.PLANTILLAS if "plantilla_" + p not in claves]
+        faltan += ["frondosidad_" + f for f in ejemplos.FRONDOSIDADES if "frondosidad_" + f not in claves]
         faltan += ["nivel_" + n for n in mod.NIVELES if "nivel_" + n not in claves]
         faltan += ["semaforo_" + c for c in ("verde", "amarillo", "rojo") if "semaforo_" + c not in claves]
         for boton in ("empezar", "abrir", "guardar", "anadir", "clic", "repetir", "quitar",

@@ -201,6 +201,12 @@ class VentanaEditor(QtWidgets.QDialog):
         self.plantillas.setToolTip(t("ayuda_plantilla"))
         arriba.addWidget(QtWidgets.QLabel(t("empezar_desde")))
         arriba.addWidget(self.plantillas)
+        self.frondosidad = QtWidgets.QComboBox()
+        for clave in ejemplos.FRONDOSIDADES:
+            self.frondosidad.addItem(t("frondosidad_" + clave), clave)
+        self.frondosidad.setCurrentIndex(ejemplos.FRONDOSIDADES.index("normal"))
+        self.frondosidad.setToolTip(t("ayuda_frondosidad"))
+        arriba.addWidget(self.frondosidad)
         arriba.addWidget(self._boton("boton_empezar", self._empezar_plantilla))
         arriba.addSpacing(16)
         arriba.addWidget(QtWidgets.QLabel(t("nombre")))
@@ -430,7 +436,7 @@ class VentanaEditor(QtWidgets.QDialog):
         print("Árboles | " + texto)
 
     def _empezar_plantilla(self):
-        self.editor.nueva(self.plantillas.currentData())
+        self.editor.nueva(self.plantillas.currentData(), self.frondosidad.currentData())
         self._seleccionar_ids([self.editor.arbol.tronco.id])
 
     def _renombrar(self):

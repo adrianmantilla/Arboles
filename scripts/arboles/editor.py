@@ -117,8 +117,8 @@ class Editor(object):
 
     # --- plantillas y receta ------------------------------------------------------
 
-    def nueva(self, plantilla):
-        nueva = ejemplos.PLANTILLAS[plantilla]()
+    def nueva(self, plantilla, frondosidad="normal"):
+        nueva = ejemplos.crear(plantilla, frondosidad)
         self._accion(self.arbol.a_dict(), nueva.a_dict(), "Arboles_plantilla")
 
     def cargar(self, arbol):

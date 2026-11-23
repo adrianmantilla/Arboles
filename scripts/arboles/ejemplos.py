@@ -78,6 +78,44 @@ def arbusto():
     return arbol
 
 
+# Frondosidad: cuánto follaje lleva la plantilla. «normal» es la plantilla tal cual.
+FRONDOSIDADES = ("clara", "normal", "frondosa")
+_FRONDOSIDAD = {
+    # densidad, tamaño de hoja, zona con hojas (multiplicadores), ramitas extra
+    "clara": (0.5, 0.9, 0.8, False),
+    "normal": (1.0, 1.0, 1.0, False),
+    "frondosa": (1.45, 1.2, 1.15, True),
+}
+
+
+def con_frondosidad(arbol, frondosidad="normal"):
+    """Ajusta el follaje de una plantilla; la frondosa añade una ramita con hojas a cada rama final."""
+    densidad, tamano, zona, ramitas = _FRONDOSIDAD[frondosidad]
+    hojas = [m for m in list(arbol.modulos.values())
+             if m.tipo == "rama" and m.valores.get("follaje", "ninguno") != "ninguno"]
+    for m in hojas:
+        m.fijar("densidad", m.valores["densidad"] * densidad)
+        m.fijar("tamano_hoja", m.valores["tamano_hoja"] * tamano)
+        m.fijar("zona", m.valores["zona"] * zona)
+    if ramitas:
+        for i, m in enumerate(hojas):
+            if arbol.hijos(m.id):
+                continue
+            v = m.valores
+            arbol.anadir_rama(m, posicion=0.55, giro=(i * _DORADO + 70) % 360, angulo=40,
+                              longitud=max(25.0, v["longitud"] * 0.4), caida=v["caida"],
+                              curvatura=v["curvatura"], grosor=0.55, nudos=0, irregularidad=0.1,
+                              follaje=v["follaje"], densidad=v["densidad"], zona=0.9,
+                              tamano_hoja=v["tamano_hoja"] * 0.9, hacia_arriba=v["hacia_arriba"])
+    if frondosidad != "normal":
+        arbol.nombre = "{}_{}".format(arbol.nombre, frondosidad)
+    return arbol
+
+
+def crear(plantilla, frondosidad="normal"):
+    return con_frondosidad(PLANTILLAS[plantilla](), frondosidad)
+
+
 PLANTILLAS = {
     "vacio": vacio,
     "copa_redonda": copa_redonda,
