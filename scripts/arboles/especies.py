@@ -71,11 +71,17 @@ def _ramificar(arbol, madre, largo_madre, niveles, azar, profundidad=0, desfase=
             valores.update(densidad=r["densidad"], zona=r["zona"], tamano_hoja=r.get("tamano", 1.0),
                            hacia_arriba=r.get("hacia_arriba", 0.4))
         rama = arbol.anadir_rama(madre, **valores)
+        tortuoso = r.get("tortuoso", 0.0)
+        if tortuoso:  # ramas que cambian de rumbo, no arcos perfectos
+            for indice, peso in ((0, 1.0), (1, 0.8), (2, 0.4)):
+                d = [azar.uniform(-1, 1) for _ in range(3)]
+                d[1] *= 0.6
+                rama.fijar_control(indice, tuple(c * tortuoso * valores["longitud"] * peso for c in d))
         _ramificar(arbol, rama, valores["longitud"], niveles, azar, profundidad + 1, azar.uniform(0, 360))
 
 
 def _especie(nombre, tronco, niveles, semilla):
-    arbol = Arbol(nombre)
+    arbol = Arbol(nombre, material=nombre)  # texturas de su especie si están instaladas
     t = arbol.anadir_tronco(**tronco)
     _ramificar(arbol, t, tronco["altura"], niveles, random.Random(semilla))
     return arbol
@@ -83,51 +89,52 @@ def _especie(nombre, tronco, niveles, semilla):
 
 def roble():
     """Tronco corto y grueso, ramas principales tortuosas y una copa ancha y redonda."""
-    return _especie("roble", dict(altura=480, grosor=30, estrechamiento=0.35, inclinacion=5, curvatura=0.15,
-                                  raices=0.6, irregularidad=0.45, nudos=4, torsion=25), [
-        dict(n=6, pos=(0.38, 0.92), angulo=62, angulo_punta=-25, largo=0.95, perfil="redondo", caida=0.15,
-             curvatura=0.2, grosor=0.6, irregularidad=0.4, nudos=2, torsion=40, var_angulo=10),
-        dict(n=(3, 4), pos=(0.3, 0.9), angulo=48, largo=0.5, caida=0.3, curvatura=0.15, grosor=0.6,
-             irregularidad=0.25, nudos=1, follaje="hoja_ancha", densidad=0.6, zona=0.45, tamano=1.5),
-        dict(n=(2, 3), pos=(0.4, 0.95), angulo=42, largo=0.45, caida=0.35, grosor=0.6, estrechamiento=0.3,
-             follaje="hoja_ancha", densidad=1.0, zona=0.95, tamano=1.5, hacia_arriba=0.45),
+    return _especie("roble", dict(altura=430, grosor=36, estrechamiento=0.35, inclinacion=5, curvatura=0.15,
+                                  raices=0.7, irregularidad=0.55, nudos=5, torsion=25), [
+        dict(n=6, pos=(0.4, 0.95), angulo=60, angulo_punta=-25, largo=1.0, perfil="redondo", caida=0.15,
+             curvatura=0.15, grosor=0.62, irregularidad=0.45, nudos=2, torsion=40, var_angulo=12, tortuoso=0.12),
+        dict(n=(3, 4), pos=(0.3, 0.92), angulo=50, largo=0.5, caida=0.3, curvatura=0.15, grosor=0.6,
+             irregularidad=0.25, nudos=1, tortuoso=0.1, follaje="hoja_ancha", densidad=0.9, zona=0.5, tamano=2.0),
+        dict(n=(2, 3), pos=(0.4, 0.95), angulo=42, largo=0.5, caida=0.35, grosor=0.6, estrechamiento=0.3,
+             follaje="hoja_ancha", densidad=1.4, zona=0.95, tamano=2.0, hacia_arriba=0.45),
     ], 11)
 
 
 def haya():
-    """Tronco recto y liso, copa alta y ovalada de ramas que suben."""
-    return _especie("haya", dict(altura=700, grosor=26, estrechamiento=0.25, curvatura=0.05,
-                                 raices=0.55, irregularidad=0.1, nudos=1), [
-        dict(n=7, pos=(0.32, 0.95), angulo=45, angulo_punta=-20, largo=0.55, perfil="ovalado", caida=0.2,
-             curvatura=0.3, grosor=0.5, irregularidad=0.1),
-        dict(n=(3, 4), pos=(0.3, 0.95), angulo=45, largo=0.5, caida=0.4, curvatura=0.1, grosor=0.6,
-             follaje="hoja_ancha", densidad=0.6, zona=0.45, tamano=1.35),
-        dict(n=2, pos=(0.5, 0.95), angulo=40, largo=0.45, caida=0.45, grosor=0.6,
-             follaje="hoja_ancha", densidad=0.95, zona=0.95, tamano=1.35, hacia_arriba=0.5),
+    """Tronco recto, liso y gris; copa alta y ovalada de ramas que suben y luego se abren."""
+    return _especie("haya", dict(altura=720, grosor=27, estrechamiento=0.25, curvatura=0.05,
+                                 raices=0.55, irregularidad=0.08, nudos=1), [
+        dict(n=7, pos=(0.3, 0.95), angulo=38, angulo_punta=-15, largo=0.58, perfil="ovalado", caida=0.25,
+             curvatura=0.2, grosor=0.5, irregularidad=0.08, tortuoso=0.08),
+        dict(n=(3, 4), pos=(0.3, 0.95), angulo=50, largo=0.55, caida=0.45, curvatura=0.05, grosor=0.6,
+             tortuoso=0.06, follaje="hoja_ancha", densidad=0.9, zona=0.5, tamano=1.8),
+        dict(n=2, pos=(0.5, 0.95), angulo=45, largo=0.45, caida=0.5, grosor=0.6,
+             follaje="hoja_ancha", densidad=1.3, zona=0.95, tamano=1.8, hacia_arriba=0.5),
     ], 23)
 
 
 def pino_pinonero():
-    """Tronco largo, inclinado y desnudo; copa plana en forma de parasol."""
-    return _especie("pino_pinonero", dict(altura=820, grosor=24, estrechamiento=0.35, inclinacion=9,
-                                          curvatura=0.2, raices=0.4, irregularidad=0.35, nudos=3), [
-        dict(n=7, pos=(0.68, 0.97), angulo=85, angulo_punta=-20, largo=0.7, perfil="parasol", caida=0.0,
-             curvatura=0.08, grosor=0.6, irregularidad=0.3, nudos=1, var_angulo=6),
-        dict(n=(3, 4), pos=(0.35, 0.95), angulo=60, largo=0.5, caida=0.1, curvatura=0.25, grosor=0.6),
-        dict(n=2, pos=(0.5, 1.0), angulo=45, largo=0.4, caida=0.0, curvatura=0.3, grosor=0.6,
-             follaje="aguja", densidad=0.55, zona=0.9, tamano=2.6, hacia_arriba=0.95),
+    """Tronco alto que se abre en brazos en forma de copa de vino, con una sombrilla plana y densa arriba."""
+    return _especie("pino_pinonero", dict(altura=650, grosor=26, estrechamiento=0.45, inclinacion=6,
+                                          curvatura=0.12, raices=0.4, irregularidad=0.35, nudos=2), [
+        dict(n=5, pos=(0.82, 1.0), angulo=42, largo=0.6, caida=0.0, curvatura=-0.35, grosor=0.7,
+             estrechamiento=0.4, irregularidad=0.3, nudos=1, var_angulo=6, tortuoso=0.08),
+        dict(n=(4, 5), pos=(0.45, 1.0), angulo=75, largo=0.65, caida=0.0, curvatura=-0.1, grosor=0.6,
+             tortuoso=0.06, follaje="aguja", densidad=0.6, zona=0.4, tamano=3.0, hacia_arriba=0.95),
+        dict(n=(2, 3), pos=(0.3, 1.0), angulo=55, largo=0.55, caida=0.05, curvatura=0.2, grosor=0.6,
+             follaje="aguja", densidad=1.1, zona=0.95, tamano=3.0, hacia_arriba=0.95),
     ], 37)
 
 
 def abeto():
-    """Pisos de ramas casi horizontales, más cortas hacia arriba: un cono perfecto."""
+    """Pisos de ramas que bajan un poco y suben en la punta, cubiertas de agujas: un cono denso."""
     return _especie("abeto", dict(altura=900, grosor=22, estrechamiento=0.08, curvatura=0.02,
                                   raices=0.35, irregularidad=0.2), [
-        dict(n=28, pos=(0.1, 0.97), giro="verticilo", por_piso=4, angulo=82, angulo_punta=-30, largo=0.34,
-             perfil="conico", caida=0.25, curvatura=0.15, grosor=0.3, estrechamiento=0.1, var_angulo=5,
-             follaje="aguja", densidad=0.2, zona=0.6, tamano=2.7, hacia_arriba=0.15),
-        dict(n=2, pos=(0.3, 0.8), giro="opuesto", angulo=55, largo=0.45, caida=0.2, grosor=0.5,
-             follaje="aguja", densidad=0.38, zona=0.95, tamano=2.8, hacia_arriba=0.15),
+        dict(n=30, pos=(0.08, 0.97), giro="verticilo", por_piso=5, angulo=95, angulo_punta=-35, largo=0.36,
+             perfil="conico", caida=0.35, curvatura=0.3, grosor=0.3, estrechamiento=0.1, var_angulo=5,
+             follaje="aguja", densidad=0.8, zona=0.95, tamano=3.0, hacia_arriba=0.2),
+        dict(n=2, pos=(0.35, 0.85), giro="opuesto", angulo=60, largo=0.4, caida=0.25, grosor=0.5,
+             follaje="aguja", densidad=0.55, zona=0.95, tamano=2.6, hacia_arriba=0.15),
     ], 41)
 
 
@@ -136,54 +143,55 @@ def abedul():
     return _especie("abedul", dict(altura=680, grosor=15, estrechamiento=0.22, inclinacion=4,
                                    curvatura=0.15, raices=0.2, irregularidad=0.15, nudos=5), [
         dict(n=9, pos=(0.3, 0.95), angulo=35, angulo_punta=-10, largo=0.4, perfil="ovalado", caida=0.15,
-             curvatura=0.35, grosor=0.45, irregularidad=0.1, nudos=1),
-        dict(n=(3, 4), pos=(0.3, 0.95), angulo=50, largo=0.7, caida=0.75, grosor=0.55, estrechamiento=0.15,
-             follaje="hoja_redonda", densidad=0.55, zona=0.75, tamano=1.1, hacia_arriba=0.2),
+             curvatura=0.35, grosor=0.45, irregularidad=0.1, nudos=1, tortuoso=0.08),
+        dict(n=(4, 5), pos=(0.25, 0.95), angulo=50, largo=0.7, caida=0.75, grosor=0.55, estrechamiento=0.2,
+             follaje="hoja_redonda", densidad=1.1, zona=0.85, tamano=1.4, hacia_arriba=0.2),
     ], 53)
 
 
 def sauce_lloron():
-    """Ramas que suben y se abren; de ellas cuelgan cortinas de ramitas hasta casi el suelo."""
-    return _especie("sauce_lloron", dict(altura=380, grosor=30, estrechamiento=0.45, inclinacion=7,
-                                         curvatura=0.2, raices=0.6, irregularidad=0.45, nudos=4), [
-        dict(n=6, pos=(0.65, 0.98), angulo=45, angulo_punta=-10, largo=0.8, perfil="ovalado", caida=0.1,
-             curvatura=0.4, grosor=0.55, irregularidad=0.35, nudos=1),
-        dict(n=(4, 5), pos=(0.3, 1.0), angulo=70, largo=1.1, caida=1.0, curvatura=-0.2, grosor=0.45,
-             estrechamiento=0.12, follaje="hoja_fina", densidad=0.7, zona=0.9, tamano=0.9, hacia_arriba=0.0),
+    """Tronco corto que se abre en brazos curvos; de ellos cuelgan cortinas de ramitas hasta casi el suelo."""
+    return _especie("sauce_lloron", dict(altura=330, grosor=32, estrechamiento=0.45, inclinacion=7,
+                                         curvatura=0.2, raices=0.6, irregularidad=0.5, nudos=4), [
+        dict(n=6, pos=(0.5, 1.0), angulo=50, angulo_punta=-15, largo=1.0, perfil="ovalado", caida=0.25,
+             curvatura=0.25, grosor=0.55, irregularidad=0.35, nudos=1, tortuoso=0.12, var_angulo=12),
+        dict(n=(5, 6), pos=(0.3, 1.0), angulo=70, largo=1.2, caida=1.0, curvatura=-0.2, grosor=0.4,
+             estrechamiento=0.12, follaje="hoja_fina", densidad=0.85, zona=0.9, tamano=1.0, hacia_arriba=0.0),
     ], 61)
 
 
 def cipres():
-    """Columna estrecha y densa: muchas ramas cortas pegadas al tronco."""
+    """Columna estrecha y densa: muchas ramas cortas que suben pegadas al tronco."""
     return _especie("cipres", dict(altura=950, grosor=18, estrechamiento=0.1, curvatura=0.03,
                                    raices=0.3, irregularidad=0.2), [
-        dict(n=34, pos=(0.05, 0.98), angulo=28, largo=0.24, perfil="columna", caida=0.0, curvatura=0.45,
-             grosor=0.35, estrechamiento=0.15, var_angulo=5, follaje="escama", densidad=0.75, zona=0.95,
-             tamano=2.0, hacia_arriba=0.85),
+        dict(n=40, pos=(0.04, 0.98), angulo=26, largo=0.22, perfil="columna", caida=0.0, curvatura=0.45,
+             grosor=0.35, estrechamiento=0.15, var_angulo=5, follaje="escama", densidad=1.2, zona=0.95,
+             tamano=2.2, hacia_arriba=0.9),
     ], 71)
 
 
 def olivo():
     """Tronco corto, retorcido y abierto en varios brazos; copa baja y redondeada de hoja fina."""
-    return _especie("olivo", dict(altura=210, grosor=26, estrechamiento=0.6, inclinacion=12,
+    return _especie("olivo", dict(altura=210, grosor=28, estrechamiento=0.6, inclinacion=12,
                                   curvatura=0.3, raices=0.8, irregularidad=0.8, nudos=6, torsion=90), [
         dict(n=4, pos=(0.75, 1.0), angulo=40, largo=1.4, perfil="redondo", caida=0.1, curvatura=0.3,
-             grosor=0.7, estrechamiento=0.4, irregularidad=0.6, nudos=3, torsion=60, var_angulo=12),
+             grosor=0.7, estrechamiento=0.4, irregularidad=0.6, nudos=3, torsion=60, var_angulo=12, tortuoso=0.14),
         dict(n=(3, 4), pos=(0.35, 1.0), angulo=48, largo=0.55, caida=0.35, curvatura=0.1, grosor=0.55,
-             irregularidad=0.3, follaje="hoja_fina", densidad=0.6, zona=0.5, tamano=0.95, hacia_arriba=0.55),
+             irregularidad=0.3, tortuoso=0.1, follaje="hoja_fina", densidad=0.8, zona=0.5, tamano=1.1,
+             hacia_arriba=0.55),
         dict(n=(2, 3), pos=(0.45, 1.0), angulo=40, largo=0.5, caida=0.45, grosor=0.6,
-             follaje="hoja_fina", densidad=1.0, zona=0.95, tamano=0.95, hacia_arriba=0.55),
+             follaje="hoja_fina", densidad=1.3, zona=0.95, tamano=1.1, hacia_arriba=0.55),
     ], 83)
 
 
 def arbusto():
-    """Muchos tallos desde el suelo, cada uno ramificado, con hoja pequeña."""
-    return _especie("arbusto", dict(altura=40, grosor=8, estrechamiento=0.6, raices=0.2,
+    """Muchos tallos que salen del suelo y se abren hacia fuera, cada uno ramificado, con hoja pequeña."""
+    return _especie("arbusto", dict(altura=12, grosor=7, estrechamiento=0.7, raices=0.3,
                                     irregularidad=0.3), [
-        dict(n=8, pos=(0.4, 1.0), angulo=28, angulo_punta=15, largo=3.2, caida=0.25, curvatura=0.25,
-             grosor=0.55, irregularidad=0.2, var_angulo=12),
-        dict(n=(3, 4), pos=(0.3, 1.0), angulo=45, largo=0.45, caida=0.3, grosor=0.6,
-             follaje="hoja_redonda", densidad=0.8, zona=0.95, tamano=0.6, hacia_arriba=0.5),
+        dict(n=11, pos=(0.1, 1.0), angulo=30, angulo_punta=0, largo=11.0, caida=0.3, curvatura=-0.15,
+             grosor=0.45, irregularidad=0.2, var_angulo=14, tortuoso=0.1),
+        dict(n=(3, 4), pos=(0.25, 1.0), angulo=45, largo=0.45, caida=0.3, grosor=0.6,
+             follaje="hoja_redonda", densidad=1.2, zona=0.95, tamano=0.9, hacia_arriba=0.5),
     ], 97)
 
 

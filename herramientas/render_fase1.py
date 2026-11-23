@@ -69,7 +69,7 @@ def _camara(cmds, ojo, mira):
     if not cmds.objExists("render_cam"):
         cmds.rename(cmds.camera()[0], "render_cam")
     cmds.viewPlace("render_cam", eye=ojo, lookAt=mira, perspective=True)
-    cmds.camera("render_cam", edit=True, horizontalFieldOfView=45)
+    cmds.camera("render_cam", edit=True, horizontalFieldOfView=45, farClipPlane=1e6)
     for camara in cmds.ls(type="camera"):
         cmds.setAttr(camara + ".renderable", 0)
     cmds.setAttr(cmds.listRelatives("render_cam", shapes=True)[0] + ".renderable", 1)

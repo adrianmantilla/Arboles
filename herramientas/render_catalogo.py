@@ -17,13 +17,17 @@ import render_fase1 as r1  # noqa: E402
 
 
 def _luces(cmds):
-    from arboles import materiales
     suelo = cmds.polyPlane(width=20000, height=20000, subdivisionsX=1, subdivisionsY=1, name="suelo")[0]
-    materiales.asignar(suelo, "arboles_clay_hoja")
+    tierra = cmds.shadingNode("standardSurface", asShader=True, name="tierra")
+    cmds.setAttr(tierra + ".baseColor", 0.22, 0.2, 0.17, type="double3")
+    cmds.setAttr(tierra + ".specular", 0.1)
+    cmds.select(suelo)
+    cmds.hyperShade(assign=tierra)
     cielo = cmds.shadingNode("aiSkyDomeLight", asLight=True, name="cielo")
     cmds.setAttr(cmds.listRelatives(cielo, shapes=True)[0] + ".color", 0.8, 0.88, 1.0, type="double3")
     sol = cmds.listRelatives(cmds.directionalLight(name="solShape", intensity=2.2), parent=True)[0]
-    cmds.setAttr(sol + ".rotate", -40, 35, 0, type="double3")
+    cmds.setAttr(sol + ".rotate", -35, 35, 0, type="double3")
+    cmds.setAttr(cmds.listRelatives(cielo, shapes=True)[0] + ".intensity", 0.6)
 
 
 def main(carpeta):

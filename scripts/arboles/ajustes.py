@@ -69,6 +69,19 @@ class Ajustes(object):
     def carpeta_biblioteca(self):
         return self.datos.get("carpeta_biblioteca")
 
+    @property
+    def resolucion_texturas(self):
+        from arboles.texturas import RESOLUCION_POR_DEFECTO, RESOLUCIONES
+        r = self.datos.get("resolucion_texturas")
+        return r if r in RESOLUCIONES else RESOLUCION_POR_DEFECTO
+
+    def fijar_resolucion_texturas(self, resolucion):
+        from arboles.texturas import RESOLUCIONES
+        if resolucion not in RESOLUCIONES:
+            raise ValueError(resolucion)
+        self.datos["resolucion_texturas"] = resolucion
+        self.guardar()
+
     def primer_uso(self):
         return not self.carpeta_biblioteca
 

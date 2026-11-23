@@ -25,7 +25,7 @@ TIPOS = {
     "hoja_grande": (6, 30.0, 17.0, 30.0, 55.0, 0.4, 0.6, "espiral"),     # castaño, plátano de sombra
     "plumosa": (18, 13.0, 3.5, 48.0, 75.0, 0.2, 0.8, "plano"),           # acacia, fresno, mimosa
     "escama": (24, 9.0, 2.4, 46.0, 38.0, 0.05, 0.9, "plano"),            # ciprés, tuya
-    "aguja": (30, 11.0, 0.7, 20.0, 70.0, 0.1, 0.7, "espiral"),           # pino, abeto
+    "aguja": (30, 12.0, 1.4, 20.0, 70.0, 0.1, 0.7, "espiral"),           # pino, abeto
 }
 # calidad: filas a lo largo de cada hoja
 CALIDADES = {"alta": 4, "baja": 2}

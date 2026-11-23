@@ -15,12 +15,13 @@ _DORADO = 137.5
 
 # Semáforo de polígonos: triángulos de un árbol generado (calidad media) para
 # que un jardín de 50 árboles se pueda renderizar en un ordenador del aula.
-SEMAFORO = ((25000, "verde"), (50000, "amarillo"))
+SEMAFORO = ((40000, "verde"), (80000, "amarillo"))
 
 
 class Arbol(object):
-    def __init__(self, nombre="arbol", escala_textura=60.0):
+    def __init__(self, nombre="arbol", escala_textura=60.0, material="clay"):
         self.nombre = nombre
+        self.material = material or "clay"  # juego de texturas (ver texturas.py) o «clay»
         self.escala_textura = float(escala_textura)  # cm que ocupa una repetición de la textura de corteza
         self.modulos = {}   # id -> Modulo, en orden de creación
         self._contador = {}
@@ -180,14 +181,14 @@ class Arbol(object):
 
     def a_dict(self):
         return {"version": VERSION_RECETA, "nombre": self.nombre, "escala_textura": self.escala_textura,
-                "modulos": [m.a_dict() for m in self.modulos.values()]}
+                "material": self.material, "modulos": [m.a_dict() for m in self.modulos.values()]}
 
     def a_json(self):
         return json.dumps(self.a_dict(), ensure_ascii=False, indent=2)
 
     @classmethod
     def de_dict(cls, datos):
-        arbol = cls(datos.get("nombre", "arbol"), datos.get("escala_textura", 60.0))
+        arbol = cls(datos.get("nombre", "arbol"), datos.get("escala_textura", 60.0), datos.get("material", "clay"))
         for d in datos.get("modulos", []):
             m = mod.Modulo.de_dict(d)
             arbol.modulos[m.id] = m
