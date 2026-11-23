@@ -25,7 +25,9 @@ TIPOS = {
     "hoja_grande": (6, 30.0, 17.0, 30.0, 55.0, 0.4, 0.6, "espiral"),     # castaño, plátano de sombra
     "plumosa": (18, 13.0, 3.5, 48.0, 75.0, 0.2, 0.8, "plano"),           # acacia, fresno, mimosa
     "escama": (24, 9.0, 2.4, 46.0, 38.0, 0.05, 0.9, "plano"),            # ciprés, tuya
-    "aguja": (30, 12.0, 1.4, 20.0, 70.0, 0.1, 0.7, "espiral"),           # pino, abeto
+    "aguja": (30, 12.0, 1.4, 20.0, 70.0, 0.1, 0.7, "espiral"),           # pinos en general
+    "pinocha": (18, 15.0, 2.0, 9.0, 82.0, 0.18, 0.7, "espiral"),          # pino piñonero: borla abierta
+    "aguja_corta": (16, 15.0, 4.0, 40.0, 75.0, 0.05, 0.9, "plano"),        # abeto, tejo: ramillete plano
 }
 # calidad: filas a lo largo de cada hoja
 CALIDADES = {"alta": 4, "baja": 2}
@@ -152,7 +154,12 @@ def colocar(modulo):
         eje = v.unitario(v.suma(v.escala(eje, 1.0 - val["hacia_arriba"]),
                                 v.escala(v.ARRIBA, val["hacia_arriba"]))) or eje
         x = v.unitario(v.cruz(eje, v.perpendicular(eje)))
-        x = v.rotar(x, eje, azar.uniform(0.0, 2.0 * math.pi))
+        if TIPOS[tipo][7] == "plano":
+            # Ramilletes planos tumbados de cara al cielo, como crecen para coger luz.
+            x = v.unitario(v.cruz(eje, v.ARRIBA)) or x
+            x = v.rotar(x, eje, azar.uniform(-0.45, 0.45))
+        else:
+            x = v.rotar(x, eje, azar.uniform(0.0, 2.0 * math.pi))
         z = v.cruz(x, eje)
         e = tamano * azar.uniform(0.8, 1.2)
         matrices.append((
