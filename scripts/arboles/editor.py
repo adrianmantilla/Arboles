@@ -216,11 +216,13 @@ class Editor(object):
             loc = cmds.parent(loc, TIRADORES)[0]
             cmds.xform(loc, worldSpace=True, translation=guia.punto(s))
             self._tiradores.append((cmds.ls(loc, long=True)[0], id_, i))
-            self._trabajos.append(cmds.scriptJob(attributeChange=[loc + ".translate", self._tirador_movido]))
+            trabajo = cmds.scriptJob(attributeChange=[loc + ".translate", self._tirador_movido])
+            if trabajo is not None:  # en modo batch (mayapy) no hay scriptJobs
+                self._trabajos.append(trabajo)
 
     def quitar_tiradores(self):
         for trabajo in self._trabajos:
-            if cmds.scriptJob(exists=trabajo):
+            if trabajo is not None and cmds.scriptJob(exists=trabajo):
                 cmds.scriptJob(kill=trabajo, force=True)
         self._trabajos, self._tiradores = [], []
         if cmds.objExists(TIRADORES):
@@ -272,7 +274,7 @@ class Editor(object):
         rayo_o = om.MFloatPoint(*origen)
         rayo_d = om.MFloatVector(*direccion)
         for nombre in cm.mallas(self.grupo):
-            camino = om.MSelectionList().add(nombre).getDagPath(0)
+            camino = cm._camino(nombre)
             camino.extendToShape()
             corte = om.MFnMesh(camino).closestIntersection(
                 rayo_o, rayo_d, om.MSpace.kWorld, 1e7, False)
@@ -410,5 +412,5 @@ class Editor(object):
 
     def cerrar(self):
         self.quitar_tiradores()
-        if cmds.draggerContext(CONTEXTO_CLIC, exists=True):
+        if not cmds.about(batch=True) and cmds.draggerContext(CONTEXTO_CLIC, exists=True):
             cmds.setToolTo("selectSuperContext")

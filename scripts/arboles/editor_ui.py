@@ -541,7 +541,7 @@ class VentanaEditor(QtWidgets.QDialog):
     # --- cierre ---------------------------------------------------------------------------------
 
     def closeEvent(self, evento):
-        if cmds.scriptJob(exists=self._trabajo):
+        if self._trabajo is not None and cmds.scriptJob(exists=self._trabajo):
             cmds.scriptJob(kill=self._trabajo, force=True)
         self.editor.cerrar()
         global _ventana
