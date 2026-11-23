@@ -319,7 +319,7 @@ def _horquilla(guia, val):
     # Los brazos arrancan algo por debajo de la horquilla, dentro del tronco: así su boca no se ve
     guia.corte = max(0.0, h - 2.5 * guia.radio_medio(h) / max(guia.largo, 1e-3))
     origen = guia.punto(guia.corte)
-    largo = (1.0 - h) * val["altura"] * 1.05
+    largo = (1.0 - h) * val["altura"] * 1.3  # algo más largos: siguen como guías dentro de la copa
     abertura = math.radians(val["abertura"])
     reparto = 0.88 if brazos == 2 else 0.76  # grosor de cada brazo respecto al tronco en la horquilla
     radio_h = guia.radio_medio(h)
@@ -339,7 +339,8 @@ def _horquilla(guia, val):
                 direccion = v.rotar(direccion, eje, abertura * 0.5 / _MUESTRAS_GUIA)
 
         def radio(s, theta, h=h):
-            return guia.radio_fn(h + (1.0 - h) * s, theta) * reparto
+            # Se estrechan hacia la punta más que el tronco, para no acabar en un tocón
+            return guia.radio_fn(h + (1.0 - h) * s, theta) * reparto * (1.0 - 0.6 * s ** 1.2)
         guia.brazos.append(Guia(puntos, _ATRAS, radio_h * reparto, radio))
 
 
@@ -495,5 +496,5 @@ def malla_modulo(guia, nivel, nombre, torsion=0.0, escala_textura=60.0):
     partes = [malla_tubo(guia, nivel, nombre, torsion, escala_textura, hasta=hasta)]
     v0 = guia.corte * guia.largo / escala_textura  # la corteza sigue por los brazos sin saltos
     for brazo in guia.brazos:
-        partes.append(malla_tubo(brazo, nivel, nombre, torsion, escala_textura, v0=v0))
+        partes.append(malla_tubo(brazo, nivel, nombre, torsion, escala_textura, v0=v0, punta=2.0))
     return unir(nombre, partes)
