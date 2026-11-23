@@ -48,7 +48,8 @@ SALIDAS = {
 TAMANOS = {"512": 512, "1k": 1024, "2k": 2048, "4k": 4096}
 
 # Por especie:
-#   fuente, preset y valores: material de partida, preset (o None) y entradas del .sbsar;
+#   fuente, preset y valores: material de partida, preset (o None) y entradas del .sbsar
+#   (en los estilizados, fake_lighting a 0: si no, traen luz pintada que en Arnold se ve doble);
 #   relieve: multiplica la inclinación de la normal (menos de 1 = más lisa);
 #   contraste: del color respecto a su media (menos de 1 = más uniforme);
 #   repetir: n x n copias en la imagen (dibujo más menudo);
@@ -62,7 +63,7 @@ CORTEZAS = {
         "$randomseed": 3, "bark_color": (0.56, 0.56, 0.53), "bark_roughness": 0.1, "bark_density": 0.15,
         "missing_part_density": 0.0}, relieve=0.15, contraste=0.35),
     "pino_pinonero": dict(fuente="stylized_wood_bark", preset=None, valores={
-        "$randomseed": 11, "bark_vertical_deformation": 0, "bark_horizontal_deformation": 0},
+        "$randomseed": 11, "fake_lighting": 0, "bark_vertical_deformation": 0, "bark_horizontal_deformation": 0},
         tinte=(0.46, 0.29, 0.19)),
     "abeto": dict(fuente="wood_bark", preset="Small Wood Bark", valores={
         "$randomseed": 5, "bark_color": (0.37, 0.33, 0.29), "bark_roughness": 0.4, "bark_density": 0.4,
@@ -70,13 +71,13 @@ CORTEZAS = {
     "abedul": dict(fuente="wood_bark", preset="Small Wood Bark", valores={
         "$randomseed": 9, "bark_color": (0.86, 0.84, 0.79), "bark_roughness": 0.2, "bark_density": 0.25,
         "missing_part_density": 0.0}, relieve=0.2, contraste=0.3, lenticelas=True),
+    # Solo color y relieve: si se tocan densidad o rugosidad, se pierden los surcos largos del preset.
     "sauce_lloron": dict(fuente="wood_bark", preset="Long Wood Bark", valores={
-        "$randomseed": 13, "bark_color": (0.36, 0.32, 0.27), "bark_roughness": 0.8, "bark_density": 0.7,
-        "missing_part_density": 0.2, "normal_intensity": 1.2}),
+        "$randomseed": 13, "bark_color": (0.36, 0.32, 0.27), "normal_intensity": 1.2}),
     "cipres": dict(fuente="stylized_wood_bark", preset="Burnt Bark", valores={
-        "$randomseed": 17, "bark_horizontal_deformation": 0.5}, tinte=(0.43, 0.31, 0.23), saturacion=0.8),
+        "$randomseed": 17, "fake_lighting": 0, "bark_horizontal_deformation": 0.5}, tinte=(0.43, 0.31, 0.23), saturacion=0.8),
     "olivo": dict(fuente="stylized_wood_bark", preset="Mossy Bark", valores={
-        "$randomseed": 19, "bark_horizontal_deformation": 1}, tinte=(0.41, 0.39, 0.35), saturacion=0.35),
+        "$randomseed": 19, "fake_lighting": 0, "bark_horizontal_deformation": 1}, tinte=(0.41, 0.39, 0.35), saturacion=0.35),
     "arbusto": dict(fuente="wood_bark", preset="Small Wood Bark", valores={
         "$randomseed": 23, "bark_color": (0.34, 0.29, 0.24), "bark_roughness": 0.4, "bark_density": 0.4,
         "missing_part_density": 0.1}, repetir=2),
