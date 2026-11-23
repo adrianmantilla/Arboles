@@ -91,7 +91,7 @@ def _nombre(obj):
 
 
 def _asignar(obj_forma, grupo_sombreado):
-    om.MFnSet(_objeto(grupo_sombreado)).addMember(om.MDagPath.getAPathTo(obj_forma))
+    om.MFnSet(_objeto(grupo_sombreado)).addMember(obj_forma)
 
 
 def grupo_de(material):
