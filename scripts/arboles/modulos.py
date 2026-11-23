@@ -31,6 +31,9 @@ PARAMETROS = {
         "raices": (0.4, 0.0, 1.0, True),
         "irregularidad": (0.25, 0.0, 1.0, True),
         "nudos": (2, 0, 10, True),
+        "horquilla": (0.0, 0.0, 0.9, True),           # altura (fracción) donde se divide; 0 = no se divide
+        "brazos": (2, 2, 3, True),                    # en cuántos troncos se divide
+        "abertura": (30.0, 5.0, 80.0, True),          # ángulo entre cada brazo y el eje del tronco
     },
     RAMA: {
         "longitud": (250.0, 10.0, 2000.0, False),
@@ -171,6 +174,8 @@ class Guia(object):
         self.largo = sum(v.distancia(a, b) for a, b in zip(puntos, puntos[1:]))
         self.radio_base = radio_base
         self.radio_fn = radio_fn  # radio_fn(s, theta)
+        self.horquilla = None  # altura (s) donde el tronco se divide en ``brazos``
+        self.brazos = []
         n = len(puntos) - 1
         self.tangentes = []
         for i in range(n + 1):
@@ -221,6 +226,13 @@ class Guia(object):
 
     def radio(self, s, theta=0.0):
         return self.radio_fn(s, theta)
+
+    def sitio(self, s, giro):
+        """(guia, s) donde nace algo en ``s`` con ``giro``: por encima de la horquilla, en su brazo."""
+        if not self.brazos or s <= self.horquilla:
+            return self, s
+        k = int((giro % 360.0) / (360.0 / len(self.brazos))) % len(self.brazos)
+        return self.brazos[k], (s - self.horquilla) / (1.0 - self.horquilla)
 
     def radio_medio(self, s):
         return sum(self.radio_fn(s, k * _TAU / 8.0) for k in range(8)) / 8.0
@@ -282,13 +294,51 @@ def guia_tronco(modulo, origen=v.CERO):
         puntos.append(v.suma(puntos[-1], v.escala(direccion, paso)))
         direccion = v.rotar(direccion, eje_curva, giro_paso)
     radio = _forma(modulo, val["grosor"], largo)
-    return Guia(puntos, _ATRAS, val["grosor"], radio, modulo.desplazamiento if modulo.curva else None)
+    guia = Guia(puntos, _ATRAS, val["grosor"], radio, modulo.desplazamiento if modulo.curva else None)
+    if val.get("horquilla", 0.0) > 0.0:
+        _horquilla(guia, val)
+    return guia
+
+
+def _horquilla(guia, val):
+    """Divide el tronco en ``brazos`` a la altura ``horquilla``: cada brazo es una Guia propia.
+
+    El tronco se dibuja hasta la horquilla y los brazos nacen dentro de él, abiertos
+    ``abertura`` grados y enderezándose hacia arriba. Las ramas que nacen por encima de la
+    horquilla se cuelgan del brazo que les toca por su giro (ver ``Guia.sitio``).
+    """
+    h = val["horquilla"]
+    brazos = int(val["brazos"])
+    origen = guia.punto(h)
+    t, n, b = guia.marco(h)
+    largo = (1.0 - h) * val["altura"] * 1.05
+    abertura = math.radians(val["abertura"])
+    reparto = 0.82 if brazos == 2 else 0.72  # grosor de cada brazo respecto al tronco en la horquilla
+    radio_h = guia.radio_medio(h)
+    paso = largo / _MUESTRAS_GUIA
+    guia.horquilla = h
+    guia.brazos = []
+    for k in range(brazos):
+        phi = (k + 0.5) * _TAU / brazos
+        radial = v.suma(v.escala(n, math.cos(phi)), v.escala(b, math.sin(phi)))
+        direccion = v.unitario(v.suma(v.escala(t, math.cos(abertura)), v.escala(radial, math.sin(abertura))))
+        puntos = [origen]
+        for i in range(_MUESTRAS_GUIA):
+            puntos.append(v.suma(puntos[-1], v.escala(direccion, paso)))
+            # Se endereza poco a poco: acaba con la mitad de la abertura
+            eje = v.unitario(v.cruz(direccion, v.ARRIBA))
+            if eje and v.angulo_entre(direccion, v.ARRIBA) > abertura * 0.5:
+                direccion = v.rotar(direccion, eje, abertura * 0.5 / _MUESTRAS_GUIA)
+
+        def radio(s, theta, h=h):
+            return guia.radio_fn(h + (1.0 - h) * s, theta) * reparto
+        guia.brazos.append(Guia(puntos, _ATRAS, radio_h * reparto, radio))
 
 
 def guia_rama(modulo, madre):
     """Curva guía de una rama que nace en el eje de su ``madre`` (una Guia)."""
     val = modulo.valores
-    s0 = val["posicion"]
+    madre, s0 = madre.sitio(val["posicion"], val["giro"])
     inicio = madre.punto(s0)
     t, n, b = madre.marco(s0)
     giro = math.radians(val["giro"])
@@ -360,19 +410,20 @@ def repeticiones_u(radio_base, escala_textura):
     return max(1, int(round(_TAU * radio_base / escala_textura)))
 
 
-def uv(s, theta, guia, escala_textura):
+def uv(s, theta, guia, escala_textura, v0=0.0):
     """UV de un punto del tubo: no depende de la resolución de la malla."""
     return (theta / _TAU * repeticiones_u(guia.radio_base, escala_textura),
-            s * guia.largo / escala_textura)
+            v0 + s * guia.largo / escala_textura)
 
 
-def malla_tubo(guia, nivel, nombre, torsion=0.0, escala_textura=60.0, cerrar_punta=True):
+def malla_tubo(guia, nivel, nombre, torsion=0.0, escala_textura=60.0, cerrar_punta=True, hasta=1.0, v0=0.0):
+    """Tubo de ``guia`` desde s=0 hasta s=``hasta``; ``v0`` desplaza la v de las UVs."""
     lados_ = lados(guia, nivel)
-    n_seg = segmentos(guia, nivel)
+    n_seg = max(SEGMENTOS_MIN, int(math.ceil(segmentos(guia, nivel) * hasta)))
     torsion = math.radians(torsion)
     m = Malla(nombre)
     for k in range(n_seg + 1):
-        s = k / float(n_seg)
+        s = k / float(n_seg) * hasta
         centro = guia.punto(s)
         _, n, b = guia.marco(s)
         for j in range(lados_):
@@ -381,7 +432,7 @@ def malla_tubo(guia, nivel, nombre, torsion=0.0, escala_textura=60.0, cerrar_pun
             direccion = v.suma(v.escala(n, math.cos(a)), v.escala(b, math.sin(a)))
             m.vertices.append(v.suma(centro, v.escala(direccion, guia.radio(s, theta))))
         for j in range(lados_ + 1):  # una UV más por anillo: la costura
-            u_, v_ = uv(s, j * _TAU / lados_, guia, escala_textura)
+            u_, v_ = uv(s, j * _TAU / lados_, guia, escala_textura, v0)
             m.us.append(u_)
             m.vs.append(v_)
     for k in range(n_seg):
@@ -392,17 +443,43 @@ def malla_tubo(guia, nivel, nombre, torsion=0.0, escala_textura=60.0, cerrar_pun
             fila, sig = k * (lados_ + 1), (k + 1) * (lados_ + 1)
             m.uv_ids += [fila + j, fila + j + 1, sig + j + 1, sig + j]
     if cerrar_punta:
-        t, _, _ = guia.marco(1.0)
-        punta = v.suma(guia.punto(1.0), v.escala(t, guia.radio_medio(1.0) * 0.6))
+        t, _, _ = guia.marco(hasta)
+        punta = v.suma(guia.punto(hasta), v.escala(t, guia.radio_medio(hasta) * 0.6))
         i_punta = len(m.vertices)
         m.vertices.append(punta)
         uv_punta = len(m.us)
-        u_max, v_fin = uv(1.0, _TAU, guia, escala_textura)
+        u_max, v_fin = uv(hasta, _TAU, guia, escala_textura, v0)
         m.us.append(u_max * 0.5)
-        m.vs.append(v_fin + guia.radio_medio(1.0) * 0.6 / escala_textura)
+        m.vs.append(v_fin + guia.radio_medio(hasta) * 0.6 / escala_textura)
         ultimo, fila = n_seg * lados_, n_seg * (lados_ + 1)
         for j in range(lados_):
             m.conteos.append(3)
             m.conexiones += [ultimo + j, ultimo + (j + 1) % lados_, i_punta]
             m.uv_ids += [fila + j, fila + j + 1, uv_punta]
     return m
+
+
+def unir(nombre, mallas):
+    """Una sola Malla con todas las de ``mallas`` (índices de vértices y UVs desplazados)."""
+    m = Malla(nombre)
+    for parte in mallas:
+        dv, duv = len(m.vertices), len(m.us)
+        m.vertices += parte.vertices
+        m.us += parte.us
+        m.vs += parte.vs
+        m.conteos += parte.conteos
+        m.conexiones += [i + dv for i in parte.conexiones]
+        m.uv_ids += [i + duv for i in parte.uv_ids]
+    return m
+
+
+def malla_modulo(guia, nivel, nombre, torsion=0.0, escala_textura=60.0):
+    """Malla de un módulo: su tubo y, si el tronco tiene horquilla, también sus brazos."""
+    if not guia.brazos:
+        return malla_tubo(guia, nivel, nombre, torsion, escala_textura)
+    h = guia.horquilla
+    partes = [malla_tubo(guia, nivel, nombre, torsion, escala_textura, hasta=h)]
+    v0 = h * guia.largo / escala_textura  # la corteza sigue por los brazos sin saltos
+    for brazo in guia.brazos:
+        partes.append(malla_tubo(brazo, nivel, nombre, torsion, escala_textura, v0=v0))
+    return unir(nombre, partes)

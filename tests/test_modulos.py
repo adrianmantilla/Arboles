@@ -171,3 +171,48 @@ class PruebaRecetas(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PruebaHorquilla(unittest.TestCase):
+    def _arbol(self, **tronco):
+        from arboles.arbol import Arbol
+        a = Arbol("y")
+        t = a.anadir_tronco(altura=600, grosor=30, **tronco)
+        arriba = a.anadir_rama(t, posicion=0.9, giro=10, longitud=200)
+        abajo = a.anadir_rama(t, posicion=0.2, giro=10, longitud=200)
+        return a.calcular(), t, arriba, abajo
+
+    def test_sin_horquilla_igual_que_antes(self):
+        a, t, arriba, _ = self._arbol()
+        self.assertEqual(t.guia.brazos, [])
+        self.assertEqual(arriba.guia.puntos[0], t.guia.punto(0.9))
+
+    def test_se_divide_en_brazos(self):
+        for brazos in (2, 3):
+            a, t, arriba, abajo = self._arbol(horquilla=0.5, brazos=brazos, abertura=30)
+            self.assertEqual(len(t.guia.brazos), brazos)
+            for brazo in t.guia.brazos:
+                self.assertEqual(brazo.puntos[0], t.guia.punto(0.5))
+                self.assertGreater(brazo.punto(1.0)[1], t.guia.punto(0.5)[1] + 200)  # sube
+            # La rama de arriba nace en un brazo, la de abajo en el tronco
+            brazo, s = t.guia.sitio(0.9, 10)
+            self.assertIn(brazo, t.guia.brazos)
+            self.assertAlmostEqual(s, 0.8)
+            self.assertEqual(arriba.guia.puntos[0], brazo.punto(s))
+            self.assertEqual(abajo.guia.puntos[0], t.guia.punto(0.2))
+
+    def test_brazos_separados_y_malla_unida(self):
+        a, t, _, _ = self._arbol(horquilla=0.4, brazos=2, abertura=40)
+        p1, p2 = (b.punto(1.0) for b in t.guia.brazos)
+        self.assertGreater(abs(p1[0] - p2[0]) + abs(p1[2] - p2[2]), 150)
+        malla = a.mallas("medio")[0]
+        n = len(malla.vertices)
+        self.assertTrue(all(0 <= i < n for i in malla.conexiones))
+        self.assertTrue(all(0 <= i < len(malla.us) for i in malla.uv_ids))
+        self.assertEqual(len(malla.uv_ids), len(malla.conexiones))
+
+    def test_receta_guarda_la_horquilla(self):
+        from arboles.arbol import Arbol
+        a, t, _, _ = self._arbol(horquilla=0.5, brazos=3)
+        b = Arbol.de_dict(a.a_dict()).calcular()
+        self.assertEqual(len(b.tronco.guia.brazos), 3)

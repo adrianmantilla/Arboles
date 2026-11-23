@@ -173,7 +173,7 @@ def _grupo_material(arbol, parte, clay):
 
 def _construir_modulo(grupo, arbol, modulo, nivel, sg_corteza):
     from arboles import modulos as mod
-    datos = mod.malla_tubo(modulo.guia, nivel, modulo.id, modulo.valores["torsion"], arbol.escala_textura)
+    datos = mod.malla_modulo(modulo.guia, nivel, modulo.id, modulo.valores["torsion"], arbol.escala_textura)
     t = _transformada(modulo.id, grupo)
     _atributo_texto(t, ATRIBUTO_MODULO, modulo.id)
     _asignar(_crear_malla(datos, t, modulo.id), sg_corteza)

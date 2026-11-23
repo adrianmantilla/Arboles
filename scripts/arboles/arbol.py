@@ -170,7 +170,7 @@ class Arbol(object):
 
     def mallas(self, nivel="denso"):
         self.calcular()
-        return [mod.malla_tubo(m.guia, nivel, m.id, m.valores["torsion"], self.escala_textura)
+        return [mod.malla_modulo(m.guia, nivel, m.id, m.valores["torsion"], self.escala_textura)
                 for m in self._orden()]
 
     def follaje(self):

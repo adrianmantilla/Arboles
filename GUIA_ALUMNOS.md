@@ -34,6 +34,7 @@ ciprés, palmera, árbol seco y arbusto. «Solo tronco» es para empezar de cero
 | Doblar una rama a mano | Activa **Tiradores de la curva** y mueve los puntos amarillos. **Enderezar** lo deshace. |
 | Copiar el aspecto de una rama a otras | **Copiar ajustes** en una, selecciona las otras y **Pegar ajustes**. |
 | Reutilizar una rama en otro árbol | **Ramas favoritas**. |
+| Partir el tronco en dos o tres (en Y) | Selecciona el tronco y, en **Avanzado**, sube **Horquilla** (la altura del corte). **Brazos** y **Abertura** dan el resto. |
 | Ver la escala | **Figura humana (1,75 m)**. |
 | Deshacer | Ctrl+Z (Cmd+Z en Mac), en todo. |
 
