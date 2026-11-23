@@ -70,7 +70,9 @@ class PruebaTexturas(unittest.TestCase):
 
 class PruebaTexturasDeSerie(unittest.TestCase):
     def test_cada_especie_trae_sus_hojas(self):
-        for especie in especies.ESPECIES:
+        for especie, receta in especies.ESPECIES.items():
+            if all(m.valores.get("follaje", "ninguno") == "ninguno" for m in receta().modulos.values()):
+                continue  # sin follaje (árbol seco): no necesita hojas
             canales = tx.canales(especie, "hoja", "1k")
             self.assertEqual(sorted(canales), sorted(tx.CANALES), especie)
             # 2K y 4K no hacen falta en las hojas: se usa la más cercana.
@@ -78,7 +80,7 @@ class PruebaTexturasDeSerie(unittest.TestCase):
 
     # Las cortezas se generan en un ordenador con Substance Designer: las que ya están en el plugin
     CON_CORTEZA = ("roble", "haya", "pino_pinonero", "abeto", "abedul", "sauce_lloron", "cipres", "olivo",
-                   "arbusto")
+                   "arbusto", "encina", "platano", "chopo", "castano", "arce", "arce_otono")
 
     def test_cada_especie_trae_su_corteza(self):
         for especie in self.CON_CORTEZA:

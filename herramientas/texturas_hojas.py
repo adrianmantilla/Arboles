@@ -40,6 +40,10 @@ HOJAS = {
     "castano": ("hoja", (0.15, 0.29, 0.08), (0.36, 0.45, 0.18), (0.20, 0.28, 0.08), 16, 0.35, 0.45, 13),
     "arce": ("hoja", (0.20, 0.36, 0.10), (0.40, 0.50, 0.22), (0.24, 0.34, 0.10), 5, 0.5, 0.45, 14),
     "arce_otono": ("hoja", (0.55, 0.16, 0.04), (0.70, 0.40, 0.10), (0.60, 0.32, 0.04), 5, 0.5, 0.5, 15),
+    "alcornoque": ("hoja", (0.12, 0.20, 0.08), (0.30, 0.35, 0.18), (0.18, 0.21, 0.10), 5, 0.25, 0.4, 16),
+    "palmera": ("hoja", (0.15, 0.27, 0.15), (0.36, 0.44, 0.28), (0.20, 0.28, 0.14), 0, 0.0, 0.3, 17),
+    # pétalo: color = punta, borde = base (la uña, más rosada), nervio = venillas
+    "almendro": ("petalo", (0.86, 0.82, 0.80), (0.80, 0.62, 0.68), (0.82, 0.48, 0.58), 5, 0.0, 0.7, 18),
     "cipres": ("escama", (0.09, 0.21, 0.08), (0.20, 0.32, 0.12), (0.12, 0.20, 0.07), 0, 0.0, 0.55, 9),
 }
 
@@ -88,6 +92,15 @@ def _mapas(dibujo, nervios, inclinacion, azar):
         lineas = _linea(np.abs(x), 0.06) * 0.6 + _linea(np.abs(np.abs(x) - 0.22), 0.04) * 0.5
         altura = np.cos(np.clip(np.abs(x) * 2.0, 0, 1) * np.pi / 2) * 0.8 + 0.05 * detalle
         borde = np.clip((v - 0.85) / 0.15, 0.0, 1.0) * 0.8 + np.clip((0.08 - v) / 0.08, 0.0, 1.0) * 0.6
+    elif dibujo == "petalo":
+        # venillas finas que salen en abanico de la base (x = 0, v = 0)
+        lineas = np.zeros_like(u)
+        for k in range(nervios):
+            angulo = (k - (nervios - 1) / 2.0) * 0.28
+            distancia = np.abs(x * np.cos(angulo) - v * np.sin(angulo))
+            lineas = np.maximum(lineas, _linea(distancia, 0.004) * (1.0 - v) * 0.7)
+        altura = 0.5 + 0.3 * np.sin(np.clip(v, 0, 1) * np.pi) - 0.2 * lineas + 0.08 * detalle
+        borde = np.clip((0.35 - v) / 0.35, 0.0, 1.0)  # la base, más rosada
     else:  # escama: ramita de ciprés hecha de escamas solapadas
         filas = 18
         fila = v * filas + np.abs(x) * 3.0
@@ -114,6 +127,8 @@ def _srgb(lineal):
 # Variantes en 2x2 (abajo izquierda, abajo derecha, arriba izquierda, arriba derecha):
 # normal, más oscura, más amarilla y algo azulada.
 VARIANTES = ((1.0, 1.0, 1.0), (0.7, 0.76, 0.68), (1.25, 1.15, 0.75), (0.85, 0.98, 1.1))
+# Las flores: blanco, blanco rosado, rosa pálido y blanco crema
+VARIANTES_FLOR = ((1.0, 1.0, 1.0), (1.0, 0.95, 0.97), (1.02, 0.86, 0.92), (1.02, 0.99, 0.9))
 
 
 def generar(especie):
@@ -130,20 +145,23 @@ def generar(especie):
 def generar_variante(especie, variante=0):
     dibujo, haz, nervio, borde_color, nervios, inclinacion, rugosidad, semilla = HOJAS[especie]
     azar = np.random.default_rng(semilla * 10 + variante)
-    tono = np.array(VARIANTES[variante])
+    tono = np.array((VARIANTES_FLOR if dibujo == "petalo" else VARIANTES)[variante])
     lineas, altura, borde, detalle = _mapas(dibujo, nervios, inclinacion, azar)
     v = 1.0 - np.mgrid[0:LADO, 0:LADO][0] / float(LADO - 1)
     manchas = _fractal(azar, (3, 7, 15))
     haz, nervio, borde_color = (np.array(c) for c in (haz, nervio, borde_color))
     color = haz[None, None, :] * (0.82 + 0.36 * manchas[..., None]) * (0.93 + 0.1 * v[..., None])
-    color = color * (1 - borde[..., None] * 0.6) + borde_color * borde[..., None] * 0.6
+    mezcla = 0.9 if dibujo == "petalo" else 0.6
+    color = color * (1 - borde[..., None] * mezcla) + borde_color * borde[..., None] * mezcla
     color = color * (1 - lineas[..., None]) + nervio * lineas[..., None]
-    color = color * (0.94 + 0.12 * detalle[..., None]) * 0.8 * tono
-    # Al trasluz la hoja se ve más amarilla y clara; los nervios, algo más oscuros.
-    trasluz = np.clip(color * np.array((1.9, 1.75, 1.0)) + np.array((0.03, 0.04, 0.0)), 0, 1)
+    color = color * (0.94 + 0.12 * detalle[..., None]) * (1.0 if dibujo == "petalo" else 0.8) * tono
+    if dibujo == "petalo":  # al trasluz, blanco cálido
+        trasluz = np.clip(color * np.array((1.05, 1.0, 0.9)), 0, 1)
+    else:  # al trasluz la hoja se ve más amarilla y clara; los nervios, algo más oscuros
+        trasluz = np.clip(color * np.array((1.9, 1.75, 1.0)) + np.array((0.03, 0.04, 0.0)), 0, 1)
     trasluz = trasluz * (1 - 0.25 * lineas[..., None])
     rugoso = np.clip(rugosidad + 0.12 * lineas + 0.08 * (detalle - 0.5), 0, 1)
-    fuerza = {"hoja": 18.0, "aguja": 10.0, "escama": 14.0}[dibujo]
+    fuerza = {"hoja": 18.0, "aguja": 10.0, "escama": 14.0, "petalo": 8.0}[dibujo]
     return {
         "color": (_srgb(color) * 255).round().astype(np.uint8),
         "translucidez": (_srgb(trasluz) * 255).round().astype(np.uint8),
