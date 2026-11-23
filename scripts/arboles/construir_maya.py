@@ -75,7 +75,7 @@ def _borrar(objetos):
         return
     mod = om.MDagModifier()
     for obj in objetos:
-        mod.deleteNode(obj)
+        mod.deleteNode(obj, False)  # sin borrar el padre si se queda vacío
     mod.doIt()
 
 
