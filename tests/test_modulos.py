@@ -216,3 +216,21 @@ class PruebaHorquilla(unittest.TestCase):
         a, t, _, _ = self._arbol(horquilla=0.5, brazos=3)
         b = Arbol.de_dict(a.a_dict()).calcular()
         self.assertEqual(len(b.tronco.guia.brazos), 3)
+
+
+class PruebaMiniaturasAyuda(unittest.TestCase):
+    def test_cada_miniatura_es_de_un_parametro(self):
+        carpeta = os.path.join(RAIZ, "iconos", "ayuda")
+        nombres = sorted(os.listdir(carpeta))
+        self.assertGreater(len(nombres), 20)
+        for archivo in nombres:
+            tipo, _, parametro = os.path.splitext(archivo)[0].partition("_")
+            self.assertIn(parametro, mod.PARAMETROS[tipo], archivo)
+
+    def test_los_basicos_tienen_miniatura(self):
+        carpeta = os.path.join(RAIZ, "iconos", "ayuda")
+        for tipo in mod.TIPOS:
+            for nombre, (_, _, _, avanzado) in mod.PARAMETROS[tipo].items():
+                if not avanzado and nombre not in mod.OPCIONES:
+                    self.assertTrue(os.path.isfile(os.path.join(carpeta, "{}_{}.png".format(tipo, nombre))),
+                                    (tipo, nombre))

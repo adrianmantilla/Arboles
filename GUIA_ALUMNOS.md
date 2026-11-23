@@ -38,6 +38,9 @@ ciprés, palmera, árbol seco y arbusto. «Solo tronco» es para empezar de cero
 | Ver la escala | **Figura humana (1,75 m)**. |
 | Deshacer | Ctrl+Z (Cmd+Z en Mac), en todo. |
 
+Si dejas el ratón quieto sobre un deslizador, sale una frase y un dibujo de qué hace, de
+menos a más.
+
 El deslizador estrella es **Peso**: dobla la rama hacia abajo por su peso. Con él pasas de
 un roble a un sauce.
 

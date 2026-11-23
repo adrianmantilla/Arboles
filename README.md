@@ -64,6 +64,8 @@ Los textos están en `scripts/arboles/i18n/es.json`. Para traducir, copia ese ar
   (sin pruebas ni herramientas), con texturas a 512 y 1K (unos 40 MB). Con `--2k` incluye
   también las de 2K (unos 130 MB) para render final. Si falta una resolución, se usa la más
   cercana. GitHub Actions genera el ZIP ligero en cada push, en «Artifacts».
+- `python3 herramientas/miniaturas_ayuda.py` rehace las miniaturas de la ayuda de los
+  deslizadores (`iconos/ayuda/`): el mismo árbol con un valor bajo y uno alto.
 - `python3 herramientas/vista_previa.py` dibuja cada especie sin Maya (frente, 3/4 y planta)
   con su número de triángulos, para ajustar siluetas rápido.
 - Pruebas sin Maya: `python3 -m unittest discover -s tests` (se ejecutan en Windows, macOS y Linux).

@@ -68,6 +68,19 @@ def texto_material(clave):
     nombre = clave if nombre == "plantilla_" + clave else nombre
     return nombre if texturas.existe(clave) else t("material_sin_texturas", nombre=nombre)
 
+def _ayuda_con_miniatura(ayuda, tipo, nombre):
+    """La frase de ayuda y, si la hay, la miniatura de qué hace el deslizador (de menos a más)."""
+    import html
+    import os
+    from arboles import texturas
+    ruta = os.path.join(os.path.dirname(texturas.carpeta_texturas()), "iconos", "ayuda",
+                        "{}_{}.png".format(tipo, nombre))
+    if not os.path.isfile(ruta):
+        return ayuda
+    return "<p style='white-space:pre-wrap; width:320px'>{}</p><img src='{}'>".format(
+        html.escape(ayuda), QtCore.QUrl.fromLocalFile(ruta).toString())
+
+
 class FilaParametro(QtWidgets.QWidget):
     """Etiqueta + deslizador + casilla numérica (o lista para opciones)."""
 
@@ -81,7 +94,7 @@ class FilaParametro(QtWidgets.QWidget):
         etiqueta = QtWidgets.QLabel(_texto("p_{}_{}".format(tipo, nombre), "p_" + nombre))
         etiqueta.setMinimumWidth(110)
         ayuda = _texto("ayuda_{}_{}".format(tipo, nombre), "ayuda_" + nombre)
-        self.setToolTip(ayuda)
+        self.setToolTip(_ayuda_con_miniatura(ayuda, tipo, nombre))
         capa.addWidget(etiqueta)
         self._quieto = False
         if nombre in mod.OPCIONES:
