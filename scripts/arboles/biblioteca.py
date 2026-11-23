@@ -3,6 +3,7 @@
     <carpeta>/arboles/<nombre>.json     receta del árbol
     <carpeta>/miniaturas/<nombre>.png   miniatura
     <carpeta>/ramas/<nombre>.json       rama favorita con todo lo que cuelga de ella
+    <carpeta>/hojas/<nombre>.json       hoja propia del alumno (malla normalizada, ver follaje.py)
 
 No depende de Maya.
 """
@@ -65,6 +66,32 @@ class Biblioteca(object):
     def cargar(self, nombre):
         with open(self.ruta_arbol(nombre), encoding="utf-8") as f:
             return Arbol.de_dict(json.load(f))
+
+    # hojas propias
+    def ruta_hoja(self, nombre):
+        return os.path.join(self.carpeta, "hojas", nombre_de_archivo(nombre) + ".json")
+
+    def hojas(self):
+        return _listar(os.path.join(self.carpeta, "hojas"))
+
+    def guardar_hoja(self, nombre, datos):
+        """Guarda la hoja y la deja disponible; devuelve el tipo de follaje («propia:<nombre>»)."""
+        from arboles import follaje
+        nombre = nombre_de_archivo(nombre)
+        _escribir(self.ruta_hoja(nombre), datos)
+        return follaje.registrar_hoja(nombre, datos)
+
+    def cargar_hojas(self):
+        """Deja disponibles todas las hojas propias de la biblioteca; devuelve sus tipos de follaje."""
+        from arboles import follaje
+        tipos = []
+        for nombre in self.hojas():
+            try:
+                with open(self.ruta_hoja(nombre), encoding="utf-8") as f:
+                    tipos.append(follaje.registrar_hoja(nombre, json.load(f)))
+            except (OSError, ValueError):
+                pass  # una hoja estropeada no impide abrir el editor
+        return tipos
 
     # ramas favoritas
     def ramas(self):

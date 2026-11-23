@@ -263,5 +263,12 @@
   "estilo_realista": "Realista",
   "estilo_cartoon": "Cartoon (colores planos)",
   "estilo_estilizado": "Estilizado (pintado)",
-  "estilo_cambiado": "Texturas en estilo {estilo}: {texturas} imágenes cambiadas en la escena."
+  "estilo_cambiado": "Texturas en estilo {estilo}: {texturas} imágenes cambiadas en la escena.",
+  "opcion_propia": "Propia: {nombre}",
+  "boton_usar_como_hoja": "Usar como hoja…",
+  "ayuda_boton_usar_como_hoja": "Convierte en hoja la malla que tengas seleccionada en la escena (modélala de pie, con el tallo abajo) y la pone en las ramas elegidas. Se guarda en tu biblioteca (carpeta hojas) y viaja dentro de cada árbol que la use.",
+  "hoja_propia_sin_malla": "Selecciona en la escena la malla que quieres usar como hoja (no una del árbol).",
+  "hoja_propia_nombre": "Nombre de la hoja:",
+  "hoja_propia_mal": "No se puede usar como hoja: {error}",
+  "hoja_propia_guardada": "Hoja «{nombre}» guardada; puesta en {n} ramas. También la tienes en la lista Hojas."
 }
