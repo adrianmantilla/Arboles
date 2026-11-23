@@ -17,6 +17,30 @@ _DORADO = 137.5
 # que un jardín de 50 árboles se pueda renderizar en un ordenador del aula.
 SEMAFORO = ((40000, "verde"), (80000, "amarillo"))
 
+# Juegos de texturas de las especies de serie. Las recetas guardadas antes de que hubiera
+# texturas no traen «material»: si su nombre es el de una especie, usan sus texturas.
+ESPECIES_CON_TEXTURAS = ("roble", "haya", "pino_pinonero", "abeto", "abedul", "sauce_lloron", "cipres",
+                         "olivo", "arbusto", "encina", "platano", "chopo", "castano", "arce", "arce_otono",
+                         "alcornoque", "arbol_seco", "almendro", "palmera")
+_ALIAS_MATERIAL = {
+    "lloron": "sauce_lloron", "sauce": "sauce_lloron", "conifera": "abeto", "columnar": "chopo",
+    "copa_redonda": "roble", "platano_de_sombra": "platano", "almendro_en_flor": "almendro",
+    "arce_en_otono": "arce_otono", "pino": "pino_pinonero", "arbusto_sencillo": "arbusto",
+    "abedul_sencillo": "abedul",
+}
+
+
+def material_por_nombre(nombre):
+    """Especie que corresponde a un nombre de árbol («Llorón», «Abedul_frondosa»…), o «clay»."""
+    import re
+    import unicodedata
+    clave = unicodedata.normalize("NFKD", nombre or "").encode("ascii", "ignore").decode("ascii").lower()
+    clave = re.sub(r"[^a-z0-9]+", "_", clave).strip("_")
+    for _ in range(2):  # «abedul_frondosa_2» → «abedul»
+        clave = re.sub(r"_(\d+|clara|normal|frondosa)$", "", clave)
+    clave = _ALIAS_MATERIAL.get(clave, clave)
+    return clave if clave in ESPECIES_CON_TEXTURAS else "clay"
+
 
 class Arbol(object):
     def __init__(self, nombre="arbol", escala_textura=60.0, material="clay"):
@@ -188,7 +212,9 @@ class Arbol(object):
 
     @classmethod
     def de_dict(cls, datos):
-        arbol = cls(datos.get("nombre", "arbol"), datos.get("escala_textura", 60.0), datos.get("material", "clay"))
+        nombre = datos.get("nombre", "arbol")
+        material = datos["material"] if "material" in datos else material_por_nombre(nombre)
+        arbol = cls(nombre, datos.get("escala_textura", 60.0), material)
         for d in datos.get("modulos", []):
             m = mod.Modulo.de_dict(d)
             arbol.modulos[m.id] = m

@@ -60,10 +60,31 @@ def maestros():
     return resultado
 
 
+def _materiales_al_dia(ruta, arbol):
+    """True si las mallas del maestro usan el material de corteza que le toca a ``arbol``."""
+    from arboles import materiales
+    deseado = materiales.nombre_material(arbol.material, "corteza")
+    mallas = cmds.listRelatives(ruta, allDescendents=True, type="mesh", fullPath=True) or []
+    for malla in mallas:
+        for grupo in cmds.listConnections(malla, type="shadingEngine") or []:
+            if deseado in (cmds.listConnections(grupo + ".surfaceShader") or []):
+                return True
+    return not mallas
+
+
 def asegurar_maestro(arbol, nivel=NIVEL_POR_DEFECTO):
     """Ruta del maestro de ``arbol`` a ``nivel``; lo crea si no existe (fuera del deshacer)."""
     ruta = ruta_maestro(arbol.nombre, nivel)
     if cm.existe(ruta):
+        if not _materiales_al_dia(ruta, arbol):
+            # Maestro de una escena anterior en clay (o con otras texturas): se rehace con las suyas.
+            estado = cmds.undoInfo(query=True, stateWithoutFlush=True)
+            cmds.undoInfo(stateWithoutFlush=False)
+            try:
+                cm.preparar(arbol)
+                cm.reconstruir(ruta, arbol.copiar(), nivel)
+            finally:
+                cmds.undoInfo(stateWithoutFlush=estado)
         return ruta
     estado = cmds.undoInfo(query=True, stateWithoutFlush=True)
     cmds.undoInfo(stateWithoutFlush=False)

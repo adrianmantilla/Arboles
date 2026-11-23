@@ -177,6 +177,16 @@ def texturas(cmds, tmp):
         comprobar(cm.grupo_de(cm.CORTEZA) in (cmds.listConnections(tronco, type="shadingEngine") or []),
                   "una especie sin texturas instaladas se queda en clay")
         cmds.delete(grupo, otro)
+        # Un maestro de una escena anterior en clay se rehace con texturas al volver a plantar.
+        from arboles import plantar
+        viejo = especies.ESPECIES["roble"]()
+        viejo.material = "clay"
+        ruta_maestro = plantar.asegurar_maestro(viejo, "bajo")
+        nuevo = especies.ESPECIES["roble"]()
+        plantar.plantar(nuevo, (0.0, 0.0, 0.0), "bajo")
+        comprobar(plantar._materiales_al_dia(ruta_maestro, nuevo),
+                  "un maestro viejo en clay se rehace con las texturas de su especie")
+        cmds.file(new=True, force=True)
     finally:
         tx.carpeta_texturas = original
 

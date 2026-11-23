@@ -237,3 +237,28 @@ class Textos(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MaterialDeRecetasViejas(unittest.TestCase):
+    """Las recetas guardadas antes de las texturas no traen «material»: se deduce del nombre."""
+
+    def test_por_nombre(self):
+        from arboles.arbol import material_por_nombre
+        for nombre, esperado in (("Abedul", "abedul"), ("Llorón", "sauce_lloron"), ("lloron_frondosa", "sauce_lloron"),
+                                 ("Conífera", "abeto"), ("Copa redonda", "roble"), ("Columnar", "chopo"),
+                                 ("Plátano de sombra", "platano"), ("Almendro en flor", "almendro"),
+                                 ("Arce en otoño", "arce_otono"), ("Roble_2", "roble"), ("Mi árbol", "clay")):
+            self.assertEqual(material_por_nombre(nombre), esperado, nombre)
+
+    def test_solo_si_falta(self):
+        a, _, _ = _arbol()
+        a.nombre = "Abedul"
+        datos = a.a_dict()
+        del datos["material"]
+        self.assertEqual(Arbol.de_dict(datos).material, "abedul")
+        datos["material"] = "clay"  # un «clay» guardado a propósito se respeta
+        self.assertEqual(Arbol.de_dict(datos).material, "clay")
+
+    def test_todas_las_especies(self):
+        from arboles import arbol as modulo_arbol, especies
+        self.assertEqual(set(modulo_arbol.ESPECIES_CON_TEXTURAS), set(especies.ESPECIES))
