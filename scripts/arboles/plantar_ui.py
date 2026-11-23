@@ -33,6 +33,23 @@ def semaforo_jardin(triangulos):
     return "rojo"
 
 
+def _icono(ruta):
+    """Icono leído del disco cada vez: QIcon(ruta) guarda en caché la miniatura vieja."""
+    if not os.path.isfile(ruta):
+        return None
+    imagen = QtGui.QPixmap()
+    with open(ruta, "rb") as f:
+        if not imagen.loadFromData(f.read()):
+            return None
+    return QtGui.QIcon(imagen)
+
+
+def refrescar_si_abierto():
+    """Tras guardar en el editor: el panel muestra la miniatura nueva sin pulsar Refrescar."""
+    if _panel is not None:
+        _panel.refrescar()
+
+
 class PanelPlantar(QtWidgets.QDialog):
     def __init__(self, padre=None):
         if padre is None:
@@ -104,8 +121,7 @@ class PanelPlantar(QtWidgets.QDialog):
         self.lista.clear()
         for nombre in bib.arboles():
             ruta = bib.ruta_miniatura(nombre)
-            icono = QtGui.QIcon(ruta) if os.path.isfile(ruta) else self.style().standardIcon(
-                QtWidgets.QStyle.SP_FileIcon)
+            icono = _icono(ruta) or self.style().standardIcon(QtWidgets.QStyle.SP_FileIcon)
             e = QtWidgets.QListWidgetItem(icono, nombre.replace("_", " "))
             e.setData(QtCore.Qt.UserRole, nombre)
             self.lista.addItem(e)

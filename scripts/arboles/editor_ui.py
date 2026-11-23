@@ -540,6 +540,8 @@ class VentanaEditor(QtWidgets.QDialog):
             self._actualizar_tiradores()
         self._mensaje(t("guardado", ruta=ruta))
         self._ofrecer_actualizar(arbol)
+        from arboles import plantar_ui
+        plantar_ui.refrescar_si_abierto()
 
     def _ofrecer_actualizar(self, arbol):
         """Si el árbol está plantado en la escena, ofrece actualizar todas sus copias."""

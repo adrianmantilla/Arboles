@@ -76,6 +76,30 @@ def _capturar_y_salir():
         p.move(40, 40)
         QtWidgets.QApplication.processEvents()
         p.grab().save(os.path.join(_SALIDA, "plantar.png"))
+        # guardar otra vez con un cambio: la miniatura y el icono del panel deben cambiar
+        import hashlib
+
+        def _md5(ruta):
+            with open(ruta, "rb") as f:
+                return hashlib.md5(f.read()).hexdigest()
+
+        def _icono_panel():
+            img = p.lista.item(0).icon().pixmap(64, 64).toImage()
+            return bytes(img.constBits())[:img.sizeInBytes()] if hasattr(img, "sizeInBytes") else img.text()
+
+        antes_md5, antes_icono = _md5(bib.ruta_miniatura("Copa redonda")), _icono_panel()
+        cmds.setAttr(w.editor.grupo + ".visibility", 1)
+        ramas = [m.id for m in w.editor.arbol.modulos.values() if m.tipo == "rama"]
+        w.editor.fijar_valor(ramas, "densidad", 0.15)
+        bib.guardar(w.editor.arbol)
+        w.editor.miniatura(bib.ruta_miniatura("Copa redonda"))
+        cmds.setAttr(w.editor.grupo + ".visibility", 0)
+        plantar_ui.refrescar_si_abierto()
+        QtWidgets.QApplication.processEvents()
+        with open(os.path.join(_SALIDA, "miniatura_cambia.txt"), "w") as f:
+            f.write("archivo cambia: {}\nicono cambia: {}\n".format(
+                _md5(bib.ruta_miniatura("Copa redonda")) != antes_md5, _icono_panel() != antes_icono))
+        p.grab().save(os.path.join(_SALIDA, "plantar_2.png"))
         cmds.select(clear=True)
         # encuadre explícito: viewFit no funciona bien con copias instanciadas
         x0, y0, z0, x1, y1, z1 = cmds.exactWorldBoundingBox(*plantar.plantados())

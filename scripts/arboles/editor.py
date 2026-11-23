@@ -399,10 +399,12 @@ class Editor(object):
                            lookAt=centro, perspective=True)
             editor = cmds.modelPanel(panel, query=True, modelEditor=True)
             cmds.modelEditor(editor, edit=True, camera=camara, displayAppearance="smoothShaded", twoSidedLighting=True,
-                             grid=False, headsUpDisplay=False, allObjects=False, polymeshes=True)
+                             grid=False, headsUpDisplay=False, allObjects=False, polymeshes=True,
+                             selectionHiliteDisplay=False)
             cmds.isolateSelect(panel, state=True)
             cmds.select(self.grupo)
             cmds.isolateSelect(panel, addSelected=True)
+            cmds.select(clear=True)  # si no, la miniatura sale con el color de selección
             cmds.showWindow(ventana)
             cmds.viewFit(camara, self.grupo, fitFactor=0.9)
             cmds.setFocus(panel)
