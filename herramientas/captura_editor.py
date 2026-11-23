@@ -5,7 +5,7 @@
       -command "python(\\"exec(open('herramientas/captura_editor.py').read())\\")"
 
 Usa una carpeta de preferencias y una biblioteca temporales dentro de ARBOLES_SALIDA.
-Deja ventana.png, visor.png y miniatura.png en ARBOLES_SALIDA.
+Deja ventana.png, visor.png, miniatura.png, plantar.png y jardin.png en ARBOLES_SALIDA.
 """
 
 import os
@@ -56,6 +56,30 @@ def _capturar_y_salir():
         w.figura.setChecked(False)
         w.editor.miniatura(os.path.join(_SALIDA, "miniatura.png"))
         print("ARBOLES_CAPTURA miniatura")
+        # Fase 3: guardar, plantar un jardín y capturar el panel y el visor
+        from arboles import plantar, plantar_ui
+        from arboles.biblioteca import Biblioteca
+        bib = Biblioteca(os.path.join(_SALIDA, "biblioteca"))
+        w.editor.arbol.nombre = "Copa redonda"
+        bib.guardar(w.editor.arbol)
+        w.editor.miniatura(bib.ruta_miniatura("Copa redonda"))
+        w.close()
+        suelo = cmds.polyPlane(width=6000, height=6000, subdivisionsX=1, subdivisionsY=1, name="suelo")[0]
+        arbol = bib.cargar("Copa_redonda")
+        for i in range(7):
+            x, z = (i % 4) * 700.0 - 1000.0, (i // 4) * 800.0 - 400.0
+            plantar.plantar(arbol, plantar.punto_en_suelo((x, 2000.0, z), (0.0, -1.0, 0.0)))
+        p = plantar_ui.mostrar()
+        p.move(40, 40)
+        QtWidgets.QApplication.processEvents()
+        p.grab().save(os.path.join(_SALIDA, "plantar.png"))
+        cmds.select(clear=True)
+        cmds.viewFit("persp", plantar.plantados() + [suelo], fitFactor=0.9)
+        cmds.refresh(force=True)
+        cmds.playblast(frame=[1], format="image", compression="png", viewer=False,
+                       completeFilename=os.path.join(_SALIDA, "jardin.png"), widthHeight=(1200, 800),
+                       percent=100, showOrnaments=False, forceOverwrite=True)
+        print("ARBOLES_CAPTURA jardin")
         print("ARBOLES_CAPTURA OK")
     except Exception:
         traceback.print_exc()
