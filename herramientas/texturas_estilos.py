@@ -78,6 +78,19 @@ def saturar(c, factor):
     return gris + (c - gris) * factor
 
 
+def ajustar(c, brillo=1.0, saturacion=1.0, tinte=(1.0, 1.0, 1.0), minimo=0.0):
+    """Brillo (multiplica), saturación y tinte; ``minimo`` levanta los oscuros (0-1).
+
+    En imágenes ya claras (pétalos) el brillo no pasa de un tope y el tinte se suaviza,
+    para que no se quemen a blanco ni amarilleen."""
+    media = float(np.mean(c))
+    claro = float(np.clip((media - 150.0) / 60.0, 0.0, 1.0))
+    tinte = np.array(tinte) * (1.0 - claro) + claro
+    brillo = min(brillo, max(1.0, 185.0 / max(media, 1.0))) if claro > 0 else brillo
+    c = saturar(c, saturacion) * tinte * brillo
+    return minimo * 255.0 + c * (1.0 - minimo)
+
+
 def bandas(c, niveles, suave=0.15):
     """Posteriza el brillo en ``niveles`` bandas conservando el tono (cel shading)."""
     brillo = np.maximum(c.max(axis=2, keepdims=True), 1.0)
@@ -111,50 +124,61 @@ def _contorno(normal, umbral):
 # --- estilos ------------------------------------------------------------------------------
 
 def cartoon(mapas, parte):
+    """Colores planos, vivos y claros: pocas bandas de brillo, contorno en los surcos y relieve suave."""
     color = mapas["color"].astype(float)
     lado = color.shape[0]
     r = max(1, lado // 256)
     if parte == "corteza":
-        color = bandas(saturar(kuwahara(color, 3 * r), 1.35), 4)
+        liso = kuwahara(color, 4 * r)
+        # Tres bandas alrededor del color medio, mucho más saturado y claro
+        medio = liso.reshape(-1, 3).mean(axis=0)
+        lum = liso.mean(axis=2, keepdims=True) / max(float(medio.mean()), 1.0)
+        nivel = np.clip(np.round((lum - 1.0) * 3.0), -1, 1) * 0.16 + 1.0
+        base = ajustar(medio[None, None, :], brillo=1.45, saturacion=1.9, tinte=(1.08, 1.0, 0.9))
+        color = base * nivel
     else:
-        # Hoja: color casi plano y los nervios como líneas limpias
+        # Hoja: un verde vivo casi plano y los nervios como líneas limpias
         liso = suavizar(color, 12 * r)
         nervios = np.clip((color - suavizar(color, 3 * r)).mean(axis=2, keepdims=True) - 4.0, 0, None)
         nervios = np.clip(nervios / 10.0, 0, 1)
-        color = saturar(liso, 1.3) * (1 + 0.35 * nervios)
+        color = ajustar(liso, brillo=1.35, saturacion=1.7) * (1 + 0.3 * nervios)
     resultado = {}
     if "normal" in mapas:
         if parte == "corteza":
             linea = _contorno(mapas["normal"], 0.45)
-            color = color * (1 - 0.55 * linea[..., None])
-        resultado["normal"] = aplanar_normal(mapas["normal"], 0.35, 2 * r)
+            color = color * (1 - 0.6 * linea[..., None])
+        resultado["normal"] = aplanar_normal(mapas["normal"], 0.15, 3 * r)
     resultado["color"] = color
     if "rugosidad" in mapas:
-        resultado["rugosidad"] = np.full_like(mapas["rugosidad"], 200.0, dtype=float)
+        resultado["rugosidad"] = np.full_like(mapas["rugosidad"], 235.0, dtype=float)
     if "translucidez" in mapas:
-        resultado["translucidez"] = saturar(suavizar(mapas["translucidez"].astype(float), 12 * r), 1.3)
+        trans = suavizar(mapas["translucidez"].astype(float), 12 * r)
+        resultado["translucidez"] = ajustar(trans, brillo=1.3, saturacion=1.6)
     return resultado
 
 
 def estilizado(mapas, parte):
+    """Pintado a mano: pinceladas grandes, tonos más cálidos y algo más claros, relieve suave."""
     color = mapas["color"].astype(float)
     lado = color.shape[0]
     r = max(1, lado // 256)
     if parte == "corteza":
-        color = kuwahara(kuwahara(color, 2 * r), r)
+        color = kuwahara(kuwahara(color, 5 * r), 2 * r)
+        color = ajustar(color, brillo=1.3, saturacion=1.5, tinte=(1.12, 1.0, 0.82))
     else:
-        color = kuwahara(kuwahara(color, 4 * r), 2 * r)
-    color = saturar(color, 1.2)
-    # Un poco más de contraste local, como pinceladas
-    detalle = color - suavizar(color, 6 * r, 2)
-    color = color + 0.35 * detalle
+        color = kuwahara(kuwahara(color, 6 * r), 3 * r)
+        color = ajustar(color, brillo=1.18, saturacion=1.35, tinte=(1.08, 1.03, 0.8))
+    # Contraste local, como pinceladas
+    detalle = color - suavizar(color, 8 * r, 2)
+    color = color + 0.5 * detalle
     resultado = {"color": color}
     if "normal" in mapas:
-        resultado["normal"] = aplanar_normal(mapas["normal"], 0.7, r)
+        resultado["normal"] = aplanar_normal(mapas["normal"], 0.45, 2 * r)
     if "rugosidad" in mapas:
-        resultado["rugosidad"] = suavizar(mapas["rugosidad"].astype(float), 2 * r)
+        resultado["rugosidad"] = np.clip(suavizar(mapas["rugosidad"].astype(float), 3 * r) + 30.0, 0, 255)
     if "translucidez" in mapas:
-        resultado["translucidez"] = saturar(kuwahara(mapas["translucidez"].astype(float), 4 * r), 1.15)
+        trans = kuwahara(mapas["translucidez"].astype(float), 4 * r)
+        resultado["translucidez"] = ajustar(trans, brillo=1.15, saturacion=1.3, tinte=(1.08, 1.03, 0.8))
     return resultado
 
 

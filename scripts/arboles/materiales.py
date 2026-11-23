@@ -77,6 +77,8 @@ def _archivo(nombre, ruta, color):
 
 # Brillo especular por estilo: el cartoon casi mate, el estilizado a medias.
 ESPECULAR_ESTILO = {"cartoon": 0.33, "estilizado": 0.66}
+# Emisión con el propio color: aplana el sombreado (el cartoon casi no tiene sombras propias)
+EMISION_ESTILO = {"cartoon": 0.35, "estilizado": 0.12}
 
 
 def _especular(parte, estilo):
@@ -104,6 +106,8 @@ def crear_material_texturas(juego, parte, resolucion=tx.RESOLUCION_POR_DEFECTO, 
     if "color" in canales:
         n = _archivo(nombre + "_color", canales["color"], True)
         cmds.connectAttr(n + ".outColor", material + ".baseColor")
+        cmds.connectAttr(n + ".outColor", material + ".emissionColor")
+        cmds.setAttr(material + ".emission", EMISION_ESTILO.get(estilo, 0.0))
         if parte == "hoja" and "translucidez" not in canales:
             cmds.connectAttr(n + ".outColor", material + ".subsurfaceColor")
     if "translucidez" in canales:
@@ -138,6 +142,8 @@ def cambiar_texturas(resolucion, estilo=tx.ESTILO_POR_DEFECTO):
             continue
         parte = material.rsplit("_", 1)[-1]
         cmds.setAttr(material + ".specular", _especular(parte, estilo))
+        if cmds.listConnections(material + ".emissionColor", source=True, destination=False):
+            cmds.setAttr(material + ".emission", EMISION_ESTILO.get(estilo, 0.0))
     return cambiados
 
 
