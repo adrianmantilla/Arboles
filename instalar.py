@@ -40,6 +40,7 @@ def instalar():
     from maya import cmds
 
     raiz = _raiz()
+    print("Árboles | instalando desde " + raiz)
     version = _version(raiz)
     carpeta_modulos = os.path.join(cmds.internalVar(userAppDir=True), "modules")
     os.makedirs(carpeta_modulos, exist_ok=True)
@@ -48,8 +49,12 @@ def instalar():
         f.write(contenido_mod(raiz, version))
     print("Árboles | módulo escrito en " + ruta_mod)
 
-    # Para esta sesión, sin reiniciar Maya.
+    # Para esta sesión, sin reiniciar Maya. Se quitan del path otras copias
+    # del plugin que se hubieran instalado antes en esta misma sesión.
     scripts = os.path.join(raiz, "scripts")
+    sys.path[:] = [p for p in sys.path
+                   if os.path.normpath(p) == os.path.normpath(scripts)
+                   or not os.path.isfile(os.path.join(p, "arboles", "__init__.py"))]
     if scripts not in sys.path:
         sys.path.insert(0, scripts)
     for nombre in [m for m in sys.modules if m == "arboles" or m.startswith("arboles.")]:
@@ -78,3 +83,8 @@ def onMayaDroppedPythonFile(*_):
         cmds.confirmDialog(title="Árboles", message="No se pudo instalar Árboles: {}".format(error),
                            button=["OK"])
         raise
+    finally:
+        # Maya guarda el archivo soltado como módulo «instalar»: si luego se
+        # suelta el instalar.py de otra carpeta en la misma sesión, reutilizaría
+        # este y apuntaría a la carpeta antigua. Se olvida al terminar.
+        sys.modules.pop(__name__, None)
