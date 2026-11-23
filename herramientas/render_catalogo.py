@@ -8,6 +8,7 @@ una con las texturas de su especie si están instaladas) y catalogo_hojas.png
 cada árbol visto a unos metros, para juzgar corteza y hojas.
 """
 
+import math
 import os
 import sys
 
@@ -88,10 +89,9 @@ def _cerca(cmds, cm, nombres, carpeta):
         caja = cmds.exactWorldBoundingBox(grupos[plantilla])
         x, z = (caja[0] + caja[3]) / 2.0, (caja[2] + caja[5]) / 2.0
         alto, ancho = caja[4] - caja[1], max(caja[3] - caja[0], caja[5] - caja[2])
-        distancia = max(450.0, max(alto, ancho) * 1.15)
-        # Desde la altura de una persona (o algo más en los altos), mirando al centro de la copa.
-        r1._camara(cmds, (x + distancia * 0.35, min(170.0 + alto * 0.1, alto * 0.5), z + distancia),
-                   (x, alto * 0.45, z))
+        # Que quepa entero: 45° en horizontal y unos 26° en vertical (16:9), con un 10 % de margen.
+        distancia = max(450.0, alto * 0.55 / math.tan(math.radians(13.1)), ancho * 0.55 / math.tan(math.radians(22.5)))
+        r1._camara(cmds, (x + distancia * 0.3, alto * 0.35, z + distancia), (x, alto * 0.5, z))
         informe.append("cerca {}: {}".format(plantilla, r1._render(cmds, os.path.join(carpeta, "cerca_" + plantilla))))
     for g in grupos.values():
         cmds.setAttr(g + ".visibility", True)
