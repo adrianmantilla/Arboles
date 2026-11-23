@@ -86,8 +86,13 @@ def valores_por_defecto(tipo):
     return {k: d[0] for k, d in PARAMETROS[tipo].items()}
 
 
+PROPIA = "propia:"  # follaje con una hoja hecha por el alumno (ver follaje.py)
+
+
 def limitar(tipo, nombre, valor):
     if nombre in OPCIONES:
+        if nombre == "follaje" and isinstance(valor, str) and valor.startswith(PROPIA) and len(valor) > len(PROPIA):
+            return valor
         if valor not in OPCIONES[nombre]:
             raise ValueError("{} no admite {!r}".format(nombre, valor))
         return valor

@@ -303,3 +303,64 @@ class Variantes(unittest.TestCase):
             e, x, z = variantes.escala_e_inclinacion(0.2, 10.0, azar)
             self.assertTrue(0.8 <= e <= 1.2 and abs(x) <= 10.0 and abs(z) <= 10.0)
         self.assertEqual(variantes.escala_e_inclinacion(0.0, 0.0, azar), (1.0, 0.0, 0.0))
+
+
+def _hoja_tumbada():
+    """Una hoja hecha por el alumno: rombo tumbado en el suelo (XZ), larga en Z, de 40 cm."""
+    vertices = [(0.0, 0.0, 10.0), (6.0, 0.0, 30.0), (0.0, 0.0, 50.0), (-6.0, 0.0, 30.0)]
+    return vertices, [[0, 1, 2, 3]]
+
+
+class HojaPropia(unittest.TestCase):
+    """«Usar como hoja»: una malla del alumno repetida como follaje."""
+
+    def tearDown(self):
+        follaje.HOJAS_PROPIAS.clear()
+
+    def test_normalizar(self):
+        datos = follaje.normalizar_hoja(*_hoja_tumbada())
+        ys = [p[1] for p in datos["vertices"]]
+        xs = [p[0] for p in datos["vertices"]]
+        self.assertAlmostEqual(min(ys), 0.0)  # el tallo en el origen
+        self.assertAlmostEqual(max(ys), 1.0)  # largo 1, a lo largo de +Y
+        self.assertAlmostEqual(max(xs) - min(xs), 0.3)  # 12 de ancho / 40 de largo
+        self.assertEqual(len(datos["uvs"]), 4)  # sin UV: proyectadas de frente
+        with self.assertRaises(ValueError):
+            follaje.normalizar_hoja([(0, 0, 0)] * 3, [[0, 1, 2]] * (follaje.MAXIMO_TRIANGULOS_HOJA + 1))
+
+    def test_en_un_arbol_y_viaja_con_la_receta(self):
+        tipo = follaje.registrar_hoja("mi_hoja", follaje.normalizar_hoja(*_hoja_tumbada()))
+        self.assertEqual(tipo, "propia:mi_hoja")
+        a, _, r = _arbol()
+        a.modulos[r].fijar("follaje", tipo)
+        a.modulos[r].fijar("densidad", 1.0)
+        malla = follaje.prototipo(tipo, "alta")
+        self.assertEqual(malla.triangulos, 10 * 2)  # 10 hojas de 2 triángulos
+        self.assertEqual(sum(malla.conteos), len(malla.conexiones))
+        self.assertEqual(len(malla.uv_ids), len(malla.conexiones))
+        self.assertTrue(all(0.0 <= u <= 1.0 for u in malla.us))
+        con = a.triangulos("medio")
+        datos = a.a_dict()
+        self.assertIn("mi_hoja", datos["hojas_propias"])
+        follaje.HOJAS_PROPIAS.clear()  # otro ordenador: la hoja solo está en la receta
+        follaje._CACHE.clear()
+        b = Arbol.de_dict(datos)
+        self.assertIn("mi_hoja", follaje.HOJAS_PROPIAS)
+        self.assertEqual(b.triangulos("medio"), con)
+
+    def test_sin_la_hoja_no_falla(self):
+        a, _, r = _arbol()
+        a.modulos[r].fijar("follaje", "propia:no_existe")
+        self.assertGreater(a.triangulos("medio"), a.triangulos("medio", con_follaje=False))
+
+    def test_biblioteca(self):
+        carpeta = tempfile.mkdtemp()
+        try:
+            bib = Biblioteca(carpeta)
+            tipo = bib.guardar_hoja("Hoja de Ana", follaje.normalizar_hoja(*_hoja_tumbada()))
+            self.assertEqual(tipo, "propia:Hoja_de_Ana")
+            self.assertEqual(bib.hojas(), ["Hoja_de_Ana"])
+            follaje.HOJAS_PROPIAS.clear()
+            self.assertEqual(bib.cargar_hojas(), ["propia:Hoja_de_Ana"])
+        finally:
+            shutil.rmtree(carpeta)

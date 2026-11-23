@@ -444,6 +444,32 @@ def fase3(cmds, tmp, bib):
     comprobar(all(cm.arbol_de(f).a_dict() == otra.a_dict() for f in formas), "las variantes siguen al original")
     cmds.delete(variadas)
 
+    # «Usar como hoja»: una malla del alumno como hoja de un árbol
+    from arboles import follaje, hoja_maya
+    hoja = cmds.polyPlane(width=8, height=20, subdivisionsX=2, subdivisionsY=3, axis=(0, 0, 1), name="hoja_alumno")[0]
+    cmds.move(0, 10, 0, hoja)
+    cmds.select(hoja)
+    forma = hoja_maya.malla_seleccionada()
+    datos = hoja_maya.leer_hoja(forma)
+    tipo = bib.guardar_hoja("Hoja alumno", datos)
+    ys = [p[1] for p in datos["vertices"]]
+    comprobar(tipo == "propia:Hoja_alumno" and len(datos["vertices"]) == 12 and abs(min(ys)) < 1e-6
+              and abs(max(ys) - 1.0) < 1e-6, "leer la malla del alumno como hoja (tallo abajo, largo 1)")
+    comprobar(len(datos["uvs"]) == 12, "la hoja conserva sus UV")
+    haya = ejemplos.crear("haya")
+    for m in haya.modulos.values():
+        if m.valores.get("follaje", "ninguno") != "ninguno":
+            m.fijar("follaje", tipo)
+    cm.preparar(haya)
+    grupo = cm.crear(haya, "medio", "prueba_hoja_propia")
+    comprobar(cm.triangulos(grupo) == haya.triangulos("medio") and haya.triangulos("medio") > haya.triangulos(
+        "medio", con_follaje=False), "un árbol con la hoja propia se construye ({} triángulos)".format(cm.triangulos(grupo)))
+    comprobar("Hoja_alumno" in cm.arbol_de(grupo).a_dict().get("hojas_propias", {}),
+              "la receta del árbol lleva su hoja propia")
+    follaje.HOJAS_PROPIAS.clear()
+    comprobar(bib.cargar_hojas() == [tipo], "la biblioteca guarda la hoja propia")
+    cmds.delete(grupo, hoja)
+
     # árboles de ejemplo en una biblioteca vacía
     from arboles.biblioteca import Biblioteca
     bib_ejemplos = Biblioteca(os.path.join(tmp, "biblioteca_ejemplos"))

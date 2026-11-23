@@ -17,7 +17,7 @@ except ImportError:  # Maya anterior a 2025
     from shiboken2 import wrapInstance
 
 from arboles import construir_maya as cm
-from arboles import ejemplos, i18n, interfaz_maya
+from arboles import ejemplos, follaje, i18n, interfaz_maya
 from arboles import modulos as mod
 from arboles.biblioteca import Biblioteca
 from arboles.editor import Editor
@@ -101,6 +101,9 @@ class FilaParametro(QtWidgets.QWidget):
             self.lista = QtWidgets.QComboBox()
             for opcion in mod.OPCIONES[nombre]:
                 self.lista.addItem(_texto("opcion_" + opcion, opcion), opcion)
+            if nombre == "follaje":  # las hojas propias del alumno, después de las de serie
+                for hoja in sorted(follaje.HOJAS_PROPIAS):
+                    self.lista.addItem(t("opcion_propia", nombre=hoja.replace("_", " ")), follaje.PROPIA + hoja)
             self.lista.currentIndexChanged.connect(self._lista_cambiada)
             capa.addWidget(self.lista, 1)
             self.deslizador = self.casilla = None
@@ -198,6 +201,10 @@ class VentanaEditor(QtWidgets.QDialog):
         self.setObjectName("ArbolesEditor")
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.Tool)
         self.resize(720, 640)
+        try:
+            self._biblioteca().cargar_hojas()  # hojas propias del alumno, para la lista de hojas
+        except OSError:
+            pass
         self.editor = Editor().abrir()
         self.editor.oyentes.append(self.refrescar)
         self._ids = []
@@ -399,6 +406,10 @@ class VentanaEditor(QtWidgets.QDialog):
             self._filas[nombre] = fila
         self.capa_parametros.addWidget(forma)
         if tipo == mod.RAMA:
+            usar = QtWidgets.QPushButton(t("boton_usar_como_hoja"))
+            usar.setToolTip(t("ayuda_boton_usar_como_hoja"))
+            usar.clicked.connect(self._usar_como_hoja)
+            hojas.filas.addWidget(usar)
             self.capa_parametros.addWidget(hojas)
         self.capa_parametros.addWidget(avanzado)
 
@@ -552,6 +563,36 @@ class VentanaEditor(QtWidgets.QDialog):
 
     def _biblioteca(self):
         return Biblioteca(interfaz_maya.carpeta_biblioteca())
+
+    def _usar_como_hoja(self):
+        """Guarda la malla seleccionada en la escena como hoja propia y la pone en las ramas elegidas."""
+        from arboles import hoja_maya
+        ids = list(self._ids)
+        forma = hoja_maya.malla_seleccionada(excluir=self.editor.grupo)
+        if forma is None:
+            self._mensaje(t("hoja_propia_sin_malla"))
+            return
+        sugerido = cmds.listRelatives(forma, parent=True)[0] if cmds.listRelatives(forma, parent=True) else "hoja"
+        nombre, aceptado = QtWidgets.QInputDialog.getText(self, t("boton_usar_como_hoja"), t("hoja_propia_nombre"),
+                                                          text=sugerido)
+        if not aceptado or not nombre.strip():
+            return
+        try:
+            datos = hoja_maya.leer_hoja(forma)
+        except ValueError as error:
+            self._mensaje(t("hoja_propia_mal", error=error))
+            return
+        tipo = self._biblioteca().guardar_hoja(nombre.strip(), datos)
+        ramas = [i for i in ids if i in self.editor.arbol.modulos and self.editor.arbol.modulos[i].tipo == mod.RAMA]
+        con_hojas = [i for i in ramas if self.editor.arbol.modulos[i].valores.get("follaje", "ninguno") != "ninguno"]
+        ramas = con_hojas or ramas  # cambia las hojas que ya había; las ramas sin hojas, solo si no hay otras
+        if ramas:
+            self._ids = ramas
+            self.editor.fijar_valor(ramas, "follaje", tipo)
+            self._seleccionar_ids(ramas)
+        else:
+            self._construir_parametros()
+        self._mensaje(t("hoja_propia_guardada", nombre=tipo[len(follaje.PROPIA):].replace("_", " "), n=len(ramas)))
 
     def _llenar_favoritas(self):
         self.menu_favoritas.clear()
