@@ -104,6 +104,8 @@ class Ajustes(object):
         preparar_biblioteca(ruta)
         self.datos["carpeta_biblioteca"] = ruta
         self.guardar()
+        from arboles import materiales_propios
+        materiales_propios.registrar(ruta)  # sus materiales propios, ya desde ahora
         return ruta
 
 

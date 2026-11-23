@@ -151,6 +151,7 @@ def preparar(arbol=None):
     """
     corteza = materiales.crear_material(CORTEZA)[1]
     hoja = materiales.crear_material(HOJA)[1]
+    resolucion_texturas()  # lee los ajustes: registra también los materiales propios de la biblioteca
     if arbol is not None and materiales.tx.existe(arbol.material):
         resolucion, estilo = resolucion_texturas(), estilo_texturas()
         corteza = materiales.crear_material_texturas(arbol.material, "corteza", resolucion, estilo)[1]

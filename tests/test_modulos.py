@@ -192,7 +192,9 @@ class PruebaHorquilla(unittest.TestCase):
             a, t, arriba, abajo = self._arbol(horquilla=0.5, brazos=brazos, abertura=30)
             self.assertEqual(len(t.guia.brazos), brazos)
             for brazo in t.guia.brazos:
-                self.assertEqual(brazo.puntos[0], t.guia.punto(0.5))
+                # nace dentro del tronco, justo por debajo de la horquilla
+                self.assertLess(v.distancia(brazo.puntos[0], t.guia.punto(0.5)), 3 * t.guia.radio_medio(0.5))
+                self.assertLess(brazo.puntos[0][1], t.guia.punto(0.5)[1])
                 self.assertGreater(brazo.punto(1.0)[1], t.guia.punto(0.5)[1] + 200)  # sube
             # La rama de arriba nace en un brazo, la de abajo en el tronco
             brazo, s = t.guia.sitio(0.9, 10)

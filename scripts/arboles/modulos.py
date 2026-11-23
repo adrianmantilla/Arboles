@@ -180,6 +180,7 @@ class Guia(object):
         self.radio_base = radio_base
         self.radio_fn = radio_fn  # radio_fn(s, theta)
         self.horquilla = None  # altura (s) donde el tronco se divide en ``brazos``
+        self.corte = None      # altura (s) donde nacen los brazos, algo por debajo
         self.brazos = []
         n = len(puntos) - 1
         self.tangentes = []
@@ -234,10 +235,10 @@ class Guia(object):
 
     def sitio(self, s, giro):
         """(guia, s) donde nace algo en ``s`` con ``giro``: por encima de la horquilla, en su brazo."""
-        if not self.brazos or s <= self.horquilla:
+        if not self.brazos or s <= self.corte:
             return self, s
         k = int((giro % 360.0) / (360.0 / len(self.brazos))) % len(self.brazos)
-        return self.brazos[k], (s - self.horquilla) / (1.0 - self.horquilla)
+        return self.brazos[k], max(0.0, (s - self.horquilla) / (1.0 - self.horquilla))
 
     def radio_medio(self, s):
         return sum(self.radio_fn(s, k * _TAU / 8.0) for k in range(8)) / 8.0
@@ -314,11 +315,13 @@ def _horquilla(guia, val):
     """
     h = val["horquilla"]
     brazos = int(val["brazos"])
-    origen = guia.punto(h)
     t, n, b = guia.marco(h)
+    # Los brazos arrancan algo por debajo de la horquilla, dentro del tronco: así su boca no se ve
+    guia.corte = max(0.0, h - 2.5 * guia.radio_medio(h) / max(guia.largo, 1e-3))
+    origen = guia.punto(guia.corte)
     largo = (1.0 - h) * val["altura"] * 1.05
     abertura = math.radians(val["abertura"])
-    reparto = 0.82 if brazos == 2 else 0.72  # grosor de cada brazo respecto al tronco en la horquilla
+    reparto = 0.88 if brazos == 2 else 0.76  # grosor de cada brazo respecto al tronco en la horquilla
     radio_h = guia.radio_medio(h)
     paso = largo / _MUESTRAS_GUIA
     guia.horquilla = h
@@ -421,8 +424,11 @@ def uv(s, theta, guia, escala_textura, v0=0.0):
             v0 + s * guia.largo / escala_textura)
 
 
-def malla_tubo(guia, nivel, nombre, torsion=0.0, escala_textura=60.0, cerrar_punta=True, hasta=1.0, v0=0.0):
-    """Tubo de ``guia`` desde s=0 hasta s=``hasta``; ``v0`` desplaza la v de las UVs."""
+def malla_tubo(guia, nivel, nombre, torsion=0.0, escala_textura=60.0, cerrar_punta=True, hasta=1.0, v0=0.0,
+               punta=0.6):
+    """Tubo de ``guia`` desde s=0 hasta s=``hasta``; ``v0`` desplaza la v de las UVs.
+
+    ``punta``: alto del cono que cierra el extremo, en radios."""
     lados_ = lados(guia, nivel)
     n_seg = max(SEGMENTOS_MIN, int(math.ceil(segmentos(guia, nivel) * hasta)))
     torsion = math.radians(torsion)
@@ -449,13 +455,14 @@ def malla_tubo(guia, nivel, nombre, torsion=0.0, escala_textura=60.0, cerrar_pun
             m.uv_ids += [fila + j, fila + j + 1, sig + j + 1, sig + j]
     if cerrar_punta:
         t, _, _ = guia.marco(hasta)
-        punta = v.suma(guia.punto(hasta), v.escala(t, guia.radio_medio(hasta) * 0.6))
+        alto_punta = guia.radio_medio(hasta) * punta
+        punta = v.suma(guia.punto(hasta), v.escala(t, alto_punta))
         i_punta = len(m.vertices)
         m.vertices.append(punta)
         uv_punta = len(m.us)
         u_max, v_fin = uv(hasta, _TAU, guia, escala_textura, v0)
         m.us.append(u_max * 0.5)
-        m.vs.append(v_fin + guia.radio_medio(hasta) * 0.6 / escala_textura)
+        m.vs.append(v_fin + alto_punta / escala_textura)
         ultimo, fila = n_seg * lados_, n_seg * (lados_ + 1)
         for j in range(lados_):
             m.conteos.append(3)
@@ -483,8 +490,10 @@ def malla_modulo(guia, nivel, nombre, torsion=0.0, escala_textura=60.0):
     if not guia.brazos:
         return malla_tubo(guia, nivel, nombre, torsion, escala_textura)
     h = guia.horquilla
-    partes = [malla_tubo(guia, nivel, nombre, torsion, escala_textura, hasta=h)]
-    v0 = h * guia.largo / escala_textura  # la corteza sigue por los brazos sin saltos
+    # El tronco acaba poco después de donde nacen los brazos: su remate queda dentro de ellos
+    hasta = min(h, guia.corte + 1.0 * guia.radio_medio(h) / max(guia.largo, 1e-3))
+    partes = [malla_tubo(guia, nivel, nombre, torsion, escala_textura, hasta=hasta)]
+    v0 = guia.corte * guia.largo / escala_textura  # la corteza sigue por los brazos sin saltos
     for brazo in guia.brazos:
         partes.append(malla_tubo(brazo, nivel, nombre, torsion, escala_textura, v0=v0))
     return unir(nombre, partes)

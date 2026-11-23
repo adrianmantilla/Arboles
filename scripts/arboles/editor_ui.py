@@ -77,7 +77,7 @@ def _ayuda_con_miniatura(ayuda, tipo, nombre):
                         "{}_{}.png".format(tipo, nombre))
     if not os.path.isfile(ruta):
         return ayuda
-    return "<p style='white-space:pre-wrap; width:320px'>{}</p><img src='{}'>".format(
+    return "<p style='white-space:pre-wrap; width:320px'>{}</p><p><img src='{}'></p>".format(
         html.escape(ayuda), QtCore.QUrl.fromLocalFile(ruta).toString())
 
 

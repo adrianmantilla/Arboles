@@ -83,7 +83,9 @@ def atlas_hoja(origen, destino, tenir):
             return destino
     imagen = QtGui.QImage(origen)
     if imagen.isNull():
-        raise ValueError(origen)
+        # Qt no la sabe leer (p. ej. un .exr): se copia tal cual y la hoja usa la imagen entera
+        shutil.copyfile(origen, destino)
+        return destino
     cuadro = imagen.convertToFormat(QtGui.QImage.Format_RGB32).scaled(
         LADO_HOJA, LADO_HOJA, QtCore.Qt.IgnoreAspectRatio, QtCore.Qt.SmoothTransformation)
     atlas = QtGui.QImage(LADO_HOJA * 2, LADO_HOJA * 2, QtGui.QImage.Format_RGB32)
@@ -98,6 +100,7 @@ def atlas_hoja(origen, destino, tenir):
             pintor.setCompositionMode(QtGui.QPainter.CompositionMode_Multiply)
             pintor.fillRect(x, y, LADO_HOJA, LADO_HOJA, color)
     pintor.end()
+    destino = os.path.splitext(destino)[0] + ".jpg"
     if not atlas.save(destino, None, 92):
         raise IOError(destino)
     return destino
@@ -123,8 +126,7 @@ def crear(carpeta_biblioteca, nombre, imagenes):
             raise ValueError((parte, canal))
         salida = os.path.join(destino, "{}_{}{}".format(parte, canal, _extension(ruta)))
         if parte == "hoja":
-            salida = os.path.splitext(salida)[0] + ".jpg"
-            atlas_hoja(ruta, salida, tenir=canal in ("color", "translucidez"))
+            salida = atlas_hoja(ruta, salida, tenir=canal in ("color", "translucidez"))
         else:
             shutil.copyfile(ruta, salida)
     with open(os.path.join(carpeta(carpeta_biblioteca), juego, NOMBRE_VISIBLE), "w", encoding="utf-8") as f:
