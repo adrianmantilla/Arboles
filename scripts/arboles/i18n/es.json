@@ -29,8 +29,21 @@
   "comprobar_carpeta_ok": "Biblioteca: {ruta} (se puede escribir).",
   "comprobar_carpeta_aviso": "Biblioteca: {ruta} no existe o no se puede escribir.",
   "comprobar_carpeta_sin": "Biblioteca: todavía no se ha elegido carpeta.",
-  "acerca_texto": "Árboles {version}\nEditor de árboles para Maya 2026 y 2027.\n\nFase 0: instalación, idioma, biblioteca y materiales clay.",
+  "acerca_texto": "Árboles {version}\nEditor de árboles para Maya 2026 y 2027.\n\nFase 1: módulos de tronco y ramas, malla densa y versión ligera con UVs.",
   "instalado_titulo": "Árboles instalado",
   "instalado_texto": "Árboles {version} está instalado y tiene su menú en la barra de Maya.\n\nSe cargará solo cada vez que abras Maya.",
-  "instalar_error": "No se pudo instalar Árboles: {error}"
+  "instalar_error": "No se pudo instalar Árboles: {error}",
+  "menu_modulos": "Módulos (fase 1)",
+  "menu_ejemplo": "Crear árbol de ejemplo",
+  "menu_generar": "Generar versión ligera: {nivel}",
+  "menu_denso": "Volver a la malla densa",
+  "menu_cuadros": "Textura de cuadros en la corteza",
+  "nivel_alto": "alta",
+  "nivel_medio": "media",
+  "nivel_bajo": "baja",
+  "nivel_denso": "densa",
+  "ejemplo_creado": "Árboles: árbol de ejemplo creado en {grupo} ({triangulos} triángulos, malla densa).",
+  "generar_sin_seleccion": "Árboles: selecciona un árbol (o una de sus ramas) para generarlo.",
+  "generado": "Árboles: {grupo} con calidad {nivel}: {antes} → {despues} triángulos.",
+  "cuadros_activos": "Árboles: textura de cuadros activada. Pulsa 6 en el visor para ver texturas."
 }

@@ -118,6 +118,35 @@ def _crear_materiales():
     print(t("materiales_listos", nombres=", ".join(sorted(creados))))
 
 
+def _arbol_ejemplo():
+    from arboles import construir_maya, ejemplos
+    grupo = construir_maya.crear(ejemplos.copa_redonda())
+    cmds.select(grupo)
+    print(t("ejemplo_creado", grupo=grupo, triangulos=construir_maya.triangulos(grupo)))
+    return grupo
+
+
+def _generar(nivel):
+    from arboles import construir_maya
+    grupos = construir_maya.grupos_seleccionados()
+    if not grupos:
+        cmds.warning(t("generar_sin_seleccion"))
+        return
+    for grupo in grupos:
+        antes = construir_maya.triangulos(grupo)
+        construir_maya.generar(grupo, nivel)
+        print(t("generado", grupo=grupo, nivel=t("nivel_" + nivel), antes=antes,
+                despues=construir_maya.triangulos(grupo)))
+    cmds.select(grupos)
+
+
+def _cuadros(activo):
+    from arboles import construir_maya
+    construir_maya.textura_cuadros(bool(activo))
+    if activo:
+        print(t("cuadros_activos"))
+
+
 def _acerca():
     cmds.confirmDialog(title=t("menu_acerca"), message=t("acerca_texto", version=arboles.__version__),
                        button=[t("boton_aceptar")])
@@ -128,6 +157,17 @@ def crear_menu():
     cmds.menu(MENU, parent="MayaWindow", label=t("menu_titulo"), tearOff=True)
     cmds.menuItem(label=t("menu_editor"), command=lambda *_: _proximamente("funcion_editor"))
     cmds.menuItem(label=t("menu_biblioteca"), command=lambda *_: _proximamente("funcion_biblioteca"))
+    cmds.menuItem(label=t("menu_modulos"), subMenu=True, tearOff=True)
+    cmds.menuItem(label=t("menu_ejemplo"), command=lambda *_: _arbol_ejemplo())
+    cmds.menuItem(divider=True)
+    for nivel in ("alto", "medio", "bajo"):
+        cmds.menuItem(label=t("menu_generar", nivel=t("nivel_" + nivel)),
+                      command=lambda *_, n=nivel: _generar(n))
+    cmds.menuItem(label=t("menu_denso"), command=lambda *_: _generar("denso"))
+    cmds.menuItem(divider=True)
+    cmds.menuItem(label=t("menu_cuadros"), checkBox=False,
+                  command=lambda activo, *_: _cuadros(activo))
+    cmds.setParent("..", menu=True)
     cmds.menuItem(divider=True)
     cmds.menuItem(label=t("menu_carpeta"), command=lambda *_: bienvenida(forzar=True))
     cmds.menuItem(label=t("menu_materiales"), command=lambda *_: _crear_materiales())

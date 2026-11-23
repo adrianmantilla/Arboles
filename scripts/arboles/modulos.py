@@ -1,0 +1,335 @@
+"""Módulos de un árbol (tronco y ramas) y su malla, en Python puro.
+
+Cada módulo es un tubo que sigue una curva guía calculada a partir de sus
+parámetros. La forma es una función continua de la posición a lo largo del
+tubo (s, de 0 a 1) y del ángulo alrededor (theta). La malla solo la muestrea:
+la versión densa y la ligera son el mismo tubo con más o menos divisiones, y
+cada punto (s, theta) tiene la misma UV en las dos.
+
+Unidades: centímetros (las de Maya por defecto) y grados en los parámetros.
+"""
+
+import math
+import zlib
+
+from arboles import vectores as v
+
+TRONCO = "tronco"
+RAMA = "rama"
+TIPOS = (TRONCO, RAMA)
+
+# nombre: (por defecto, mínimo, máximo, avanzado)
+PARAMETROS = {
+    TRONCO: {
+        "altura": (600.0, 50.0, 3000.0, False),
+        "grosor": (25.0, 2.0, 200.0, False),          # radio en la base
+        "estrechamiento": (0.35, 0.05, 1.0, False),   # radio en la punta / radio en la base
+        "inclinacion": (0.0, 0.0, 60.0, False),
+        "curvatura": (0.15, -1.0, 1.0, False),
+        "direccion": (0.0, 0.0, 360.0, True),         # hacia dónde se inclina y se curva
+        "torsion": (0.0, -360.0, 360.0, True),
+        "raices": (0.4, 0.0, 1.0, True),
+        "irregularidad": (0.25, 0.0, 1.0, True),
+        "nudos": (2, 0, 10, True),
+    },
+    RAMA: {
+        "longitud": (250.0, 10.0, 2000.0, False),
+        "angulo": (50.0, 0.0, 120.0, False),          # ángulo de salida respecto a la madre
+        "caida": (0.3, 0.0, 1.0, False),              # cuánto la dobla su propio peso
+        "curvatura": (0.1, -1.0, 1.0, False),         # positiva hacia arriba
+        "posicion": (0.6, 0.0, 1.0, True),            # dónde nace a lo largo de la madre
+        "giro": (0.0, 0.0, 360.0, True),              # alrededor de la madre
+        "grosor": (0.45, 0.05, 1.0, True),            # radio respecto al de la madre en ese punto
+        "estrechamiento": (0.2, 0.02, 1.0, True),
+        "torsion": (0.0, -360.0, 360.0, True),
+        "irregularidad": (0.15, 0.0, 1.0, True),
+        "nudos": (1, 0, 10, True),
+    },
+}
+
+# nivel: (lados, largo de cada segmento en radios de la base)
+NIVELES = {
+    "denso": (24, 0.5),
+    "alto": (12, 1.2),
+    "medio": (8, 2.0),
+    "bajo": (6, 3.0),
+}
+NIVELES_GENERAR = ("alto", "medio", "bajo")
+SEGMENTOS_MIN, SEGMENTOS_MAX = 3, 160
+
+_MUESTRAS_GUIA = 64       # resolución fija de la curva guía, igual para todos los niveles
+_ATRAS = (0.0, 0.0, -1.0)  # la costura del tronco mira hacia atrás
+_TAU = 2.0 * math.pi
+
+
+def valores_por_defecto(tipo):
+    return {k: d[0] for k, d in PARAMETROS[tipo].items()}
+
+
+def limitar(tipo, nombre, valor):
+    defecto, minimo, maximo, _ = PARAMETROS[tipo][nombre]
+    valor = max(minimo, min(maximo, valor))
+    return int(round(valor)) if isinstance(defecto, int) else float(valor)
+
+
+class Modulo(object):
+    """Un tronco o una rama: tipo, madre y valores de sus parámetros."""
+
+    def __init__(self, id_, tipo, padre=None, valores=None):
+        if tipo not in TIPOS:
+            raise ValueError("tipo desconocido: {}".format(tipo))
+        if (tipo == TRONCO) != (padre is None):
+            raise ValueError("el tronco no tiene madre y toda rama necesita una")
+        self.id = id_
+        self.tipo = tipo
+        self.padre = padre
+        self.valores = valores_por_defecto(tipo)
+        for nombre, valor in (valores or {}).items():
+            self.fijar(nombre, valor)
+        self.guia = None  # Guia calculada
+
+    def fijar(self, nombre, valor):
+        if nombre not in PARAMETROS[self.tipo]:
+            raise KeyError("{} no tiene el parámetro {}".format(self.tipo, nombre))
+        self.valores[nombre] = limitar(self.tipo, nombre, valor)
+
+    @property
+    def semilla(self):
+        return zlib.crc32(self.id.encode("utf-8")) & 0xFFFFFFFF
+
+    def a_dict(self):
+        return {"id": self.id, "tipo": self.tipo, "padre": self.padre, "valores": dict(self.valores)}
+
+    @classmethod
+    def de_dict(cls, datos):
+        return cls(datos["id"], datos["tipo"], datos.get("padre"), datos.get("valores"))
+
+
+# --- Curva guía ---------------------------------------------------------------
+
+class Guia(object):
+    """Curva guía muestreada a resolución fija, con marcos sin giros bruscos.
+
+    ``puntos``, ``tangentes``, ``normales`` y ``binormales`` tienen
+    _MUESTRAS_GUIA + 1 elementos repartidos por igual a lo largo del tubo.
+    """
+
+    def __init__(self, puntos, normal_inicial, radio_base, radio_fn):
+        self.puntos = puntos
+        self.largo = sum(v.distancia(a, b) for a, b in zip(puntos, puntos[1:]))
+        self.radio_base = radio_base
+        self.radio_fn = radio_fn  # radio_fn(s, theta)
+        n = len(puntos) - 1
+        self.tangentes = []
+        for i in range(n + 1):
+            a, b = puntos[max(0, i - 1)], puntos[min(n, i + 1)]
+            self.tangentes.append(v.unitario(v.resta(b, a)) or v.ARRIBA)
+        # Transporte paralelo: la normal gira lo justo para seguir a la tangente.
+        normal = v.unitario(v.tangente(normal_inicial, self.tangentes[0])) or v.perpendicular(self.tangentes[0])
+        self.normales, self.binormales = [], []
+        anterior = self.tangentes[0]
+        for t in self.tangentes:
+            eje = v.unitario(v.cruz(anterior, t))
+            if eje:
+                normal = v.rotar(normal, eje, v.angulo_entre(anterior, t))
+            normal = v.unitario(v.tangente(normal, t)) or v.perpendicular(t)
+            self.normales.append(normal)
+            self.binormales.append(v.cruz(t, normal))
+            anterior = t
+
+    def _indice(self, s):
+        x = max(0.0, min(1.0, s)) * (len(self.puntos) - 1)
+        i = min(int(x), len(self.puntos) - 2)
+        return i, x - i
+
+    @staticmethod
+    def _mezcla(a, b, f):
+        return v.suma(v.escala(a, 1.0 - f), v.escala(b, f))
+
+    def punto(self, s):
+        i, f = self._indice(s)
+        return self._mezcla(self.puntos[i], self.puntos[i + 1], f)
+
+    def marco(self, s):
+        """(tangente, normal, binormal) ortonormales en ``s``."""
+        i, f = self._indice(s)
+        t = v.unitario(self._mezcla(self.tangentes[i], self.tangentes[i + 1], f)) or self.tangentes[i]
+        n = v.unitario(v.tangente(self._mezcla(self.normales[i], self.normales[i + 1], f), t)) \
+            or v.perpendicular(t)
+        return t, n, v.cruz(t, n)
+
+    def radio(self, s, theta=0.0):
+        return self.radio_fn(s, theta)
+
+    def radio_medio(self, s):
+        return sum(self.radio_fn(s, k * _TAU / 8.0) for k in range(8)) / 8.0
+
+
+def _azar(semilla):
+    """Generador congruencial sencillo: mismos valores en cualquier Python."""
+    estado = [semilla or 1]
+
+    def siguiente():
+        estado[0] = (1103515245 * estado[0] + 12345) & 0x7FFFFFFF
+        return estado[0] / float(0x7FFFFFFF)
+    return siguiente
+
+
+def _forma(modulo, radio_base, largo):
+    """Función radio(s, theta) del módulo: estrechamiento, irregularidad, nudos y raíces."""
+    val = modulo.valores
+    azar = _azar(modulo.semilla)
+    estrecho = val["estrechamiento"]
+    irregular = val["irregularidad"]
+    ondas = [(1 + int(azar() * 3), 0.5 + azar() * 2.5, azar() * _TAU, 0.4 + azar() * 0.6) for _ in range(4)]
+    nudos = [(0.15 + azar() * 0.75, azar() * _TAU) for _ in range(val["nudos"])]
+    ancho_nudo = max(radio_base * 0.9, 1e-3) / max(largo, 1e-3)
+    raices = val.get("raices", 0.0)
+    lobulos = 4 + int(azar() * 3)
+    fase_raices = azar() * _TAU
+    alto_raices = min(0.35, radio_base * 3.0 / max(largo, 1e-3))
+
+    def radio(s, theta):
+        r = radio_base * (1.0 + (estrecho - 1.0) * (s ** 0.8))
+        if irregular:
+            ruido = sum(a * math.sin(f * s * largo / max(radio_base, 1e-3) + m * theta + fase)
+                        for m, f, fase, a in ondas) / len(ondas)
+            r *= 1.0 + 0.12 * irregular * ruido
+        for s_nudo, theta_nudo in nudos:
+            ds = (s - s_nudo) / ancho_nudo
+            dt = math.atan2(math.sin(theta - theta_nudo), math.cos(theta - theta_nudo)) / 0.6
+            r *= 1.0 + 0.3 * math.exp(-ds * ds - dt * dt)
+        if raices and s < alto_raices:
+            f = (1.0 - s / alto_raices) ** 2
+            r *= 1.0 + raices * f * (0.8 + 0.7 * math.cos(lobulos * theta + fase_raices))
+        return r
+    return radio
+
+
+def guia_tronco(modulo, origen=v.CERO):
+    val = modulo.valores
+    largo = val["altura"]
+    d = math.radians(val["direccion"])
+    horizontal = (math.sin(d), 0.0, math.cos(d))
+    eje_curva = v.unitario(v.cruz(v.ARRIBA, horizontal))
+    inclinacion = math.radians(val["inclinacion"])
+    direccion = v.rotar(v.ARRIBA, eje_curva, inclinacion)
+    paso = largo / _MUESTRAS_GUIA
+    giro_paso = val["curvatura"] * (math.pi / 2.0) / _MUESTRAS_GUIA
+    puntos = [v.vec(origen)]
+    for _ in range(_MUESTRAS_GUIA):
+        puntos.append(v.suma(puntos[-1], v.escala(direccion, paso)))
+        direccion = v.rotar(direccion, eje_curva, giro_paso)
+    radio = _forma(modulo, val["grosor"], largo)
+    return Guia(puntos, _ATRAS, val["grosor"], radio)
+
+
+def guia_rama(modulo, madre):
+    """Curva guía de una rama que nace en el eje de su ``madre`` (una Guia)."""
+    val = modulo.valores
+    s0 = val["posicion"]
+    inicio = madre.punto(s0)
+    t, n, b = madre.marco(s0)
+    giro = math.radians(val["giro"])
+    radial = v.suma(v.escala(n, math.cos(giro)), v.escala(b, math.sin(giro)))
+    angulo = math.radians(val["angulo"])
+    direccion = v.unitario(v.suma(v.escala(t, math.cos(angulo)), v.escala(radial, math.sin(angulo))))
+    radio_base = max(0.2, madre.radio_medio(s0) * val["grosor"])
+    largo = val["longitud"]
+    flexible = max(0.3, min(1.8, largo / radio_base / 40.0))
+    paso = largo / _MUESTRAS_GUIA
+    curva_paso = val["curvatura"] * (math.pi / 2.0) / _MUESTRAS_GUIA
+    puntos = [inicio]
+    for i in range(_MUESTRAS_GUIA):
+        puntos.append(v.suma(puntos[-1], v.escala(direccion, paso)))
+        eje = v.unitario(v.cruz(direccion, v.ARRIBA))
+        if eje:
+            direccion = v.rotar(direccion, eje, curva_paso)          # curvatura: hacia arriba
+            hacia_abajo = v.angulo_entre(direccion, v.ABAJO)
+            # Como una viga en voladizo: se dobla más cerca de donde nace.
+            caida = val["caida"] * flexible * 1.2 * (1.5 - i / float(_MUESTRAS_GUIA)) / _MUESTRAS_GUIA
+            direccion = v.rotar(direccion, eje, -min(caida, hacia_abajo * 0.5))
+        direccion = v.unitario(direccion) or direccion
+    # La costura de las ramas va por debajo, donde menos se ve.
+    return Guia(puntos, v.ABAJO, radio_base, _forma(modulo, radio_base, largo))
+
+
+# --- Malla --------------------------------------------------------------------
+
+class Malla(object):
+    """Datos de una malla listos para MFnMesh.create y assignUVs."""
+
+    def __init__(self, nombre):
+        self.nombre = nombre
+        self.vertices = []
+        self.conteos = []
+        self.conexiones = []
+        self.us, self.vs = [], []
+        self.uv_ids = []
+
+    @property
+    def caras(self):
+        return len(self.conteos)
+
+    @property
+    def triangulos(self):
+        return sum(c - 2 for c in self.conteos)
+
+
+def segmentos(guia, nivel):
+    _, largo_segmento = NIVELES[nivel]
+    n = int(math.ceil(guia.largo / max(guia.radio_base * largo_segmento, 1e-3)))
+    return max(SEGMENTOS_MIN, min(SEGMENTOS_MAX, n))
+
+
+def repeticiones_u(radio_base, escala_textura):
+    """Vueltas enteras de textura alrededor del tubo (enteras para que no se note la costura)."""
+    return max(1, int(round(_TAU * radio_base / escala_textura)))
+
+
+def uv(s, theta, guia, escala_textura):
+    """UV de un punto del tubo: no depende de la resolución de la malla."""
+    return (theta / _TAU * repeticiones_u(guia.radio_base, escala_textura),
+            s * guia.largo / escala_textura)
+
+
+def malla_tubo(guia, nivel, nombre, torsion=0.0, escala_textura=60.0, cerrar_punta=True):
+    lados, _ = NIVELES[nivel]
+    n_seg = segmentos(guia, nivel)
+    torsion = math.radians(torsion)
+    m = Malla(nombre)
+    for k in range(n_seg + 1):
+        s = k / float(n_seg)
+        centro = guia.punto(s)
+        _, n, b = guia.marco(s)
+        for j in range(lados):
+            theta = j * _TAU / lados
+            a = theta + torsion * s
+            direccion = v.suma(v.escala(n, math.cos(a)), v.escala(b, math.sin(a)))
+            m.vertices.append(v.suma(centro, v.escala(direccion, guia.radio(s, theta))))
+        for j in range(lados + 1):  # una UV más por anillo: la costura
+            u_, v_ = uv(s, j * _TAU / lados, guia, escala_textura)
+            m.us.append(u_)
+            m.vs.append(v_)
+    for k in range(n_seg):
+        for j in range(lados):
+            j2 = (j + 1) % lados
+            m.conteos.append(4)
+            m.conexiones += [k * lados + j, k * lados + j2, (k + 1) * lados + j2, (k + 1) * lados + j]
+            fila, sig = k * (lados + 1), (k + 1) * (lados + 1)
+            m.uv_ids += [fila + j, fila + j + 1, sig + j + 1, sig + j]
+    if cerrar_punta:
+        t, _, _ = guia.marco(1.0)
+        punta = v.suma(guia.punto(1.0), v.escala(t, guia.radio_medio(1.0) * 0.6))
+        i_punta = len(m.vertices)
+        m.vertices.append(punta)
+        uv_punta = len(m.us)
+        u_max, v_fin = uv(1.0, _TAU, guia, escala_textura)
+        m.us.append(u_max * 0.5)
+        m.vs.append(v_fin + guia.radio_medio(1.0) * 0.6 / escala_textura)
+        ultimo, fila = n_seg * lados, n_seg * (lados + 1)
+        for j in range(lados):
+            m.conteos.append(3)
+            m.conexiones += [ultimo + j, ultimo + (j + 1) % lados, i_punta]
+            m.uv_ids += [fila + j, fila + j + 1, uv_punta]
+    return m

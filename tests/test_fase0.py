@@ -60,7 +60,7 @@ class PruebaTextos(unittest.TestCase):
             for nombre in archivos:
                 if nombre.endswith(".py"):
                     with open(os.path.join(carpeta, nombre), encoding="utf-8") as f:
-                        usadas |= set(re.findall(r'\bt\("([a-z_]+)"', f.read()))
+                        usadas |= set(re.findall(r'\bt\("([a-z_]+)"[,)]', f.read()))
         with open(os.path.join(RAIZ, "scripts", "arboles", "interfaz_maya.py"), encoding="utf-8") as f:
             usadas |= set(re.findall(r'_proximamente\("([a-z_]+)"\)', f.read()))
         faltan = usadas - i18n.claves()
