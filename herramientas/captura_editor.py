@@ -64,6 +64,9 @@ def _capturar_y_salir():
         bib.guardar(w.editor.arbol)
         w.editor.miniatura(bib.ruta_miniatura("Copa redonda"))
         w.close()
+        cmds.setAttr(w.editor.grupo + ".visibility", 0)
+        if cmds.objExists("arboles_figura_humana"):
+            cmds.setAttr("arboles_figura_humana.visibility", 0)
         suelo = cmds.polyPlane(width=6000, height=6000, subdivisionsX=1, subdivisionsY=1, name="suelo")[0]
         arbol = bib.cargar("Copa_redonda")
         for i in range(7):
