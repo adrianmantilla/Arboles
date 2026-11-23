@@ -52,17 +52,18 @@ TAMANOS = {"512": 512, "1k": 1024, "2k": 2048, "4k": 4096}
 #   relieve: multiplica la inclinación de la normal (menos de 1 = más lisa);
 #   contraste: del color respecto a su media (menos de 1 = más uniforme);
 #   repetir: n x n copias en la imagen (dibujo más menudo);
+#   tinte: color medio (sRGB, 0-1) al que se lleva el color; saturacion: menos de 1 = más gris;
 #   lenticelas: trazos oscuros horizontales (abedul).
 CORTEZAS = {
-    "roble": dict(fuente="wood_bark", preset="Long Wood Bark", valores={
+    "roble": dict(fuente="wood_bark", preset=None, valores={
         "$randomseed": 7, "bark_color": (0.33, 0.30, 0.26), "bark_roughness": 0.9, "bark_density": 0.8,
-        "missing_part_density": 0.3}, relieve=1.4),
+        "missing_part_density": 0.3, "normal_intensity": 1.2}),
     "haya": dict(fuente="wood_bark", preset="Small Wood Bark", valores={
         "$randomseed": 3, "bark_color": (0.56, 0.56, 0.53), "bark_roughness": 0.1, "bark_density": 0.15,
         "missing_part_density": 0.0}, relieve=0.15, contraste=0.35),
-    "pino_pinonero": dict(fuente="wood_bark", preset=None, valores={
-        "$randomseed": 11, "bark_color": (0.46, 0.29, 0.19), "bark_roughness": 0.6, "bark_density": 0.5,
-        "missing_part_density": 0.2}),
+    "pino_pinonero": dict(fuente="stylized_wood_bark", preset=None, valores={
+        "$randomseed": 11, "bark_vertical_deformation": 0, "bark_horizontal_deformation": 0},
+        tinte=(0.46, 0.29, 0.19)),
     "abeto": dict(fuente="wood_bark", preset="Small Wood Bark", valores={
         "$randomseed": 5, "bark_color": (0.37, 0.33, 0.29), "bark_roughness": 0.4, "bark_density": 0.4,
         "missing_part_density": 0.1}),
@@ -71,13 +72,11 @@ CORTEZAS = {
         "missing_part_density": 0.0}, relieve=0.2, contraste=0.3, lenticelas=True),
     "sauce_lloron": dict(fuente="wood_bark", preset="Long Wood Bark", valores={
         "$randomseed": 13, "bark_color": (0.36, 0.32, 0.27), "bark_roughness": 0.8, "bark_density": 0.7,
-        "missing_part_density": 0.2}, relieve=1.3),
-    "cipres": dict(fuente="wood_bark", preset="Long Wood Bark", valores={
-        "$randomseed": 17, "bark_color": (0.43, 0.31, 0.23), "bark_roughness": 0.6, "bark_density": 0.6,
-        "missing_part_density": 0.1}),
-    "olivo": dict(fuente="wood_bark", preset="Long Wood Bark", valores={
-        "$randomseed": 19, "bark_color": (0.41, 0.39, 0.35), "bark_roughness": 0.85, "bark_density": 0.75,
-        "missing_part_density": 0.4}, relieve=1.6),
+        "missing_part_density": 0.2, "normal_intensity": 1.2}),
+    "cipres": dict(fuente="stylized_wood_bark", preset="Burnt Bark", valores={
+        "$randomseed": 17, "bark_horizontal_deformation": 0.5}, tinte=(0.43, 0.31, 0.23), saturacion=0.8),
+    "olivo": dict(fuente="stylized_wood_bark", preset="Mossy Bark", valores={
+        "$randomseed": 19, "bark_horizontal_deformation": 1}, tinte=(0.41, 0.39, 0.35), saturacion=0.35),
     "arbusto": dict(fuente="wood_bark", preset="Small Wood Bark", valores={
         "$randomseed": 23, "bark_color": (0.34, 0.29, 0.24), "bark_roughness": 0.4, "bark_density": 0.4,
         "missing_part_density": 0.1}, repetir=2),
@@ -164,6 +163,16 @@ def normal_es_directx(normal, altura):
     return float((n * pendiente).sum()) > 0
 
 
+def _trazo(filas, columnas, y, x, largo, grueso, alto, ancho, azar):
+    """Elipse alargada de borde nítido y algo irregular, repetible por los bordes."""
+    import numpy as np
+    dy = (filas - y + alto / 2.0) % alto - alto / 2.0
+    dx = (columnas - x + ancho / 2.0) % ancho - ancho / 2.0
+    ondula = 1.0 + 0.35 * np.sin(dx / max(largo, 1.0) * azar.uniform(6, 14) + azar.uniform(0, 6.3))
+    forma = 1.0 - (dx / (largo / 2.0)) ** 2 - (dy / (grueso * ondula)) ** 2
+    return np.clip(forma * 6.0, 0.0, 1.0) * azar.uniform(0.75, 1.0)
+
+
 def _lenticelas(color, normal, rugosidad, semilla):
     """Trazos oscuros horizontales del abedul (repetibles: se dan la vuelta por los bordes)."""
     import numpy as np
@@ -172,14 +181,16 @@ def _lenticelas(color, normal, rugosidad, semilla):
     filas = np.arange(alto)[:, None]
     columnas = np.arange(ancho)[None, :]
     marca = np.zeros((alto, ancho))
-    for _ in range(int(140 * ancho / 1024.0)):
+    # Trazos finos y nítidos de largo muy variable, por bandas, y alguna mancha grande suelta.
+    for _ in range(int(40 * ancho / 1024.0)):
         y, x = azar.uniform(0, alto), azar.uniform(0, ancho)
-        largo = azar.uniform(0.03, 0.22) * ancho
-        grueso = azar.uniform(0.002, 0.009) * alto
-        dy = (filas - y + alto / 2.0) % alto - alto / 2.0
-        dx = (columnas - x + ancho / 2.0) % ancho - ancho / 2.0
-        forma = np.clip(1.0 - (dx / (largo / 2.0)) ** 2 - (dy / grueso) ** 2, 0.0, 1.0)
-        marca = np.maximum(marca, np.sqrt(forma) * azar.uniform(0.6, 1.0))
+        largo = ancho * azar.choice((azar.uniform(0.02, 0.08), azar.uniform(0.08, 0.35)), p=(0.6, 0.4))
+        grueso = azar.uniform(0.0012, 0.004) * alto
+        marca = np.maximum(marca, _trazo(filas, columnas, y, x, largo, grueso, alto, ancho, azar))
+    for _ in range(int(2 * ancho / 1024.0)):
+        y, x = azar.uniform(0, alto), azar.uniform(0, ancho)
+        marca = np.maximum(marca, _trazo(filas, columnas, y, x, ancho * azar.uniform(0.12, 0.3),
+                                         alto * azar.uniform(0.006, 0.014), alto, ancho, azar))
     oscuro = np.array((38.0, 34.0, 32.0))
     color[:] = color * (1 - marca[..., None]) + oscuro * marca[..., None]
     rugosidad[:] = np.clip(rugosidad + marca[..., None] * 60.0, 0, 255)
@@ -194,6 +205,13 @@ def retocar(mapas, ajustes, semilla=0):
     color = mapas["color"].astype(float)
     normal = mapas["normal"].astype(float)
     rugosidad = mapas["rugosidad"].astype(float)
+    saturacion = ajustes.get("saturacion", 1.0)
+    if saturacion != 1.0:
+        gris = color.mean(axis=2, keepdims=True)
+        color = gris + (color - gris) * saturacion
+    if ajustes.get("tinte"):
+        media = color.reshape(-1, 3).mean(axis=0)
+        color = color * (np.array(ajustes["tinte"]) * 255.0 / np.maximum(media, 1.0))
     contraste = ajustes.get("contraste", 1.0)
     if contraste != 1.0:
         media = color.reshape(-1, 3).mean(axis=0)
