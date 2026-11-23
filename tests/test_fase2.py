@@ -225,7 +225,8 @@ class Textos(unittest.TestCase):
         faltan += ["nivel_" + n for n in mod.NIVELES if "nivel_" + n not in claves]
         faltan += ["semaforo_" + c for c in ("verde", "amarillo", "rojo") if "semaforo_" + c not in claves]
         for boton in ("empezar", "abrir", "guardar", "anadir", "clic", "repetir", "quitar",
-                      "copiar", "pegar", "favoritas", "enderezar"):
+                      "copiar", "pegar", "favoritas", "enderezar", "plantar", "plantar_clic", "desligar",
+                      "editar_maestro", "refrescar"):
             faltan += [c for c in ("boton_" + boton, "ayuda_boton_" + boton) if c not in claves]
         self.assertEqual(faltan, [])
 

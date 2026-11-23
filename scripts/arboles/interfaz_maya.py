@@ -154,6 +154,12 @@ def _editor():
     return editor_ui.mostrar()
 
 
+def _plantar():
+    from arboles import plantar_ui
+    carpeta_biblioteca()
+    return plantar_ui.mostrar()
+
+
 def _acerca():
     cmds.confirmDialog(title=t("menu_acerca"), message=t("acerca_texto", version=arboles.__version__),
                        button=[t("boton_aceptar")])
@@ -163,7 +169,7 @@ def crear_menu():
     quitar_menu()
     cmds.menu(MENU, parent="MayaWindow", label=t("menu_titulo"), tearOff=True)
     cmds.menuItem(label=t("menu_editor"), command=lambda *_: _editor())
-    cmds.menuItem(label=t("menu_biblioteca"), command=lambda *_: _proximamente("funcion_biblioteca"))
+    cmds.menuItem(label=t("menu_biblioteca"), command=lambda *_: _plantar())
     cmds.menuItem(label=t("menu_modulos"), subMenu=True, tearOff=True)
     cmds.menuItem(label=t("menu_ejemplo"), command=lambda *_: _arbol_ejemplo())
     cmds.menuItem(divider=True)

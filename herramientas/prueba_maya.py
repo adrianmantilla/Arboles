@@ -1,4 +1,4 @@
-"""Prueba de las fases 0, 1 y 2 dentro de Maya, sin interfaz (herramienta de desarrollo).
+"""Prueba de las fases 0 a 3 dentro de Maya, sin interfaz (herramienta de desarrollo).
 
 Desde la terminal, con el mayapy de cada versión:
 
@@ -278,7 +278,76 @@ def fase2(cmds, tmp):
     otra_vez = ed.Editor().abrir("vacio")
     comprobar(len(otra_vez.arbol.modulos) == len(e.arbol.modulos), "reabrir el editor recupera el árbol")
 
+    fase3(cmds, tmp, bib)
     ventana(cmds, tmp, otra_vez)
+
+
+def fase3(cmds, tmp, bib):
+    import maya.api.OpenMaya as om
+    from arboles import construir_maya as cm
+    from arboles import ejemplos, plantar
+
+    print("Fase 3")
+    cmds.file(new=True, force=True)
+    arbol = ejemplos.crear("copa_redonda", "frondosa")
+    arbol.nombre = "Roble del patio"
+    bib.guardar(arbol)
+    arbol = bib.cargar("Roble_del_patio")
+    suelo = cmds.polyPlane(width=4000, height=4000, name="suelo")[0]
+    cmds.move(0, 50, 0, suelo)
+    punto = plantar.punto_en_suelo((300.0, 1000.0, 200.0), (0.0, -1.0, 0.0))
+    comprobar(punto and abs(punto[1] - 50) < 1e-3, "el clic encuentra el suelo ({})".format(punto))
+    copias = [plantar.plantar(arbol, (i * 600.0, 50.0, 0.0)) for i in range(3)]
+    maestro = plantar.ruta_maestro(arbol.nombre, "medio")
+    comprobar(cm.es_arbol(maestro), "se crea el maestro oculto")
+    comprobar(len(plantar.plantados()) == 3, "3 copias plantadas")
+    caminos = om.MDagPath.getAllPathsTo(cm._objeto(maestro))
+    comprobar(len(caminos) == 4, "las copias son instancias del maestro ({} caminos)".format(len(caminos)))
+    giros = {round(cmds.getAttr(c + ".rotateY"), 3) for c in copias}
+    comprobar(len(giros) == 3, "cada copia con su giro aleatorio")
+    punto = plantar.punto_en_suelo((0.0, 3000.0, 0.0), (0.0, -1.0, 0.0))
+    comprobar(punto and abs(punto[1] - 50) < 1e-3, "el clic atraviesa los árboles y planta en el suelo")
+    n, tri = plantar.informe()
+    comprobar(n == 3 and tri == 3 * cm.triangulos(maestro), "recuento del jardín ({} triángulos)".format(tri))
+    cmds.undo()
+    comprobar(len(plantar.plantados()) == 2, "deshacer la última copia plantada")
+    cmds.redo()
+    comprobar(len(plantar.plantados()) == 3, "rehacerla")
+
+    # cambiar el maestro cambia todas las copias
+    antes = cm.triangulos(maestro)
+    cambiado = arbol.copiar()
+    for m in cambiado.modulos.values():
+        if m.tipo == "rama":
+            m.fijar("densidad", 0.1)
+    comprobar(plantar.actualizar_maestros(cambiado) == 1, "actualizar el maestro")
+    despues = cm.triangulos(maestro)
+    comprobar(despues < antes and despues == cambiado.triangulos("medio"),
+              "las copias cambian con el maestro ({} → {})".format(antes, despues))
+    comprobar(len(om.MDagPath.getAllPathsTo(cm._objeto(maestro))) == 4, "siguen siendo instancias tras actualizar")
+    cmds.undo()
+    comprobar(cm.triangulos(maestro) == antes, "deshacer la actualización")
+
+    # desligar
+    libres = plantar.desligar([copias[0]])
+    comprobar(len(libres) == 1 and len(plantar.plantados()) == 2, "desligar una copia")
+    comprobar(cm.triangulos(maestro) == antes and len(om.MDagPath.getAllPathsTo(cm._objeto(maestro))) == 3,
+              "desligar no toca el maestro ni las otras copias")
+    hijos = cmds.listRelatives(libres[0], children=True, fullPath=True) or []
+    comprobar(hijos and len(om.MDagPath.getAllPathsTo(cm._objeto(hijos[0]))) == 1, "la copia desligada es independiente")
+    cmds.undo()
+    comprobar(len(plantar.plantados()) == 3, "deshacer desligar")
+
+    # borrar una copia no toca el maestro
+    cmds.delete(copias[2])
+    comprobar(cm.es_arbol(maestro) and len(plantar.plantados()) == 2, "borrar una copia deja el maestro")
+
+    archivo = os.path.join(tmp, "jardin.ma")
+    cmds.file(rename=archivo)
+    cmds.file(save=True, type="mayaAscii", force=True)
+    cmds.file(archivo, open=True, force=True)
+    comprobar(len(plantar.plantados()) == 2 and len(om.MDagPath.getAllPathsTo(cm._objeto(maestro))) == 3,
+              "el jardín sobrevive a guardar y abrir")
 
 
 def v_dist(a, b):

@@ -244,6 +244,7 @@ class VentanaEditor(QtWidgets.QDialog):
         self.favoritas.setMenu(self.menu_favoritas)
         botones.append(self.favoritas)
         botones.append(self._boton("boton_enderezar", self._enderezar))
+        botones.append(self._boton("boton_plantar", self._plantar))
         for i, b in enumerate(botones):
             rejilla.addWidget(b, i // 2, i % 2)
         ci.addLayout(rejilla)
@@ -511,6 +512,10 @@ class VentanaEditor(QtWidgets.QDialog):
         nuevo = self.editor.injertar(self._biblioteca().cargar_rama(nombre), self._ids[0])
         self._seleccionar_ids([nuevo])
 
+    def _plantar(self):
+        from arboles import plantar_ui
+        plantar_ui.mostrar()
+
     def _generar(self, nivel):
         grupo = self.editor.generar(nivel)
         if grupo:
@@ -534,6 +539,21 @@ class VentanaEditor(QtWidgets.QDialog):
         finally:
             self._actualizar_tiradores()
         self._mensaje(t("guardado", ruta=ruta))
+        self._ofrecer_actualizar(arbol)
+
+    def _ofrecer_actualizar(self, arbol):
+        """Si el árbol está plantado en la escena, ofrece actualizar todas sus copias."""
+        from arboles import plantar
+        from arboles.biblioteca import nombre_de_archivo
+        nombre = nombre_de_archivo(arbol.nombre)
+        copias = [c for c in plantar.plantados()
+                  if cm.leer_texto(cmds.getAttr(c + "." + plantar.ATRIBUTO_PLANTADO), plantar.ATRIBUTO_MAESTRO) == nombre]
+        if not copias:
+            return
+        r = QtWidgets.QMessageBox.question(self, t("boton_guardar"), t("actualizar_copias", n=len(copias)))
+        if r == QtWidgets.QMessageBox.Yes:
+            plantar.actualizar_maestros(arbol)
+            self._mensaje(t("copias_actualizadas", n=len(copias)))
 
     def _abrir(self):
         bib = self._biblioteca()
