@@ -20,8 +20,9 @@ Aparece el menú **Árboles** en la barra de Maya. Se cargará solo cada vez que
 3. Haz clic en una rama de la lista o en el visor y mueve los deslizadores. Todo cambia al momento.
 4. Ponle un nombre y pulsa **Guardar**. Se guarda con una miniatura.
 
-Plantillas: roble, haya, pino piñonero, abeto, abedul, sauce llorón, ciprés, olivo y arbusto.
-«Solo tronco» es para empezar de cero.
+Plantillas (19 especies): roble, encina, alcornoque, haya, castaño, plátano de sombra, arce,
+arce en otoño, chopo, abedul, sauce llorón, olivo, almendro en flor, pino piñonero, abeto,
+ciprés, palmera, árbol seco y arbusto. «Solo tronco» es para empezar de cero.
 
 ## 3. Editar
 
@@ -46,13 +47,19 @@ En cada rama eliges el tipo de **Hojas**, su **Densidad**, su **Tamaño**, la **
 
 | Tipo | Se parece a |
 | --- | --- |
-| Hoja ancha | roble, haya |
+| Hoja ancha | haya |
+| Hoja lobulada | roble |
+| Hoja pequeña | encina, alcornoque |
+| Hoja palmeada | arce, plátano de sombra |
+| Hoja larga dentada | castaño |
 | Hoja fina | sauce, olivo |
-| Hoja redonda | abedul, álamo |
-| Hoja grande | castaño, plátano de sombra |
+| Hoja redonda | abedul, chopo |
+| Hoja grande | hojas grandes en general |
 | Plumosa | acacia, fresno, mimosa |
+| Foliolos en pluma | palmera |
+| Flores | almendro, cerezo |
 | Escamas | ciprés, tuya |
-| Agujas | pino, abeto |
+| Agujas, agujas largas en borla, agujas cortas en escobilla | pino, pino piñonero, abeto |
 
 ### El semáforo
 
@@ -82,7 +89,8 @@ independiente que ya no cambia con el maestro.
 
 Cada especie de ejemplo trae sus texturas de corteza y de hoja. En el editor, el desplegable
 **Material** elige cuáles usa tu árbol: la de una especie, o **Clay** (gris neutro, cómodo
-para modelar). Las texturas se ven en el visor y en Arnold.
+para modelar). Las texturas se ven en Arnold y en el visor; en el visor, pulsa **6**
+(modo con texturas) para verlas.
 
 En **Árboles › Resolución de texturas** eliges la calidad: 512 o 1K mientras trabajas en
 clase, 2K o 4K para el render final. Cambiarla actualiza los árboles que ya tienes en la escena.
@@ -94,5 +102,7 @@ textura repetible encaja.
 
 - **Árboles › Comprobar instalación** dice la versión de Maya, si está Arnold y dónde está tu biblioteca.
 - Si moviste la carpeta del plugin, vuelve a arrastrar `instalar.py` al visor.
+- Los árboles se ven grises en el visor: pulsa **6**. Si siguen grises, mira su **Material**
+  en el editor: los árboles guardados con versiones muy antiguas pueden estar en Clay.
 - Las hojas se ven negras en el visor: activa la iluminación por las dos caras
   (en el visor, **Lighting › Two Sided Lighting**). El editor la activa solo.

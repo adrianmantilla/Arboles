@@ -4,8 +4,8 @@ Editor de árboles para Autodesk Maya 2026 y 2027 (Windows y macOS), pensado par
 Montas el árbol a mano con módulos (tronco, ramas y follaje), lo guardas en tu biblioteca y lo
 plantas en la escena como instancias ligadas al original.
 
-> **Estado: fase 4 (aula).** Editor, follaje, biblioteca, jardín con copias ligadas y guía para
-> alumnos en [GUIA_ALUMNOS.md](GUIA_ALUMNOS.md).
+> **Versión 0.9.** Editor, follaje, biblioteca, jardín con copias ligadas, 19 especies de serie
+> con texturas de corteza y hoja, y guía para alumnos en [GUIA_ALUMNOS.md](GUIA_ALUMNOS.md).
 
 No necesita instalar nada más: funciona con el Python que trae Maya.
 
@@ -41,7 +41,9 @@ en el Plug-in Manager.
 
 Cada especie de serie trae su corteza (color, relieve y rugosidad, repetible) y su hoja
 (color, relieve, rugosidad y trasluz) en `texturas/<especie>/<resolución>/`. Un árbol usa
-las de su «Material» (combo del editor); «Clay» es gris neutro para modelar. Las cortezas
+las de su «Material» (combo del editor); «Clay» es gris neutro para modelar. En el visor se
+ven con el modo texturizado (tecla 6). Los árboles guardados con versiones anteriores a la 0.5
+no tienen material: toman el de la especie que indique su nombre, o el clay si no coincide. Las cortezas
 se generan con `herramientas/texturas_corteza.py` (Substance 3D Designer, `sbsrender`) y
 las hojas con `herramientas/texturas_hojas.py` (numpy y Pillow). Ver `texturas/LEEME.md`.
 Las cortezas parten de materiales de serie de Adobe Substance: úsalas en clase y revisa
@@ -56,7 +58,11 @@ Los textos están en `scripts/arboles/i18n/es.json`. Para traducir, copia ese ar
 ## Para el profesor
 
 - `python3 herramientas/empaquetar.py` crea `dist/Arboles-<versión>.zip` para repartir
-  (sin pruebas ni herramientas). GitHub Actions lo genera también en cada push, en «Artifacts».
+  (sin pruebas ni herramientas), con texturas a 512 y 1K (unos 40 MB). Con `--2k` incluye
+  también las de 2K (unos 130 MB) para render final. Si falta una resolución, se usa la más
+  cercana. GitHub Actions genera el ZIP ligero en cada push, en «Artifacts».
+- `python3 herramientas/vista_previa.py` dibuja cada especie sin Maya (frente, 3/4 y planta)
+  con su número de triángulos, para ajustar siluetas rápido.
 - Pruebas sin Maya: `python3 -m unittest discover -s tests` (se ejecutan en Windows, macOS y Linux).
 - Prueba completa en Maya: `mayapy herramientas/prueba_maya.py`.
 - Render de comprobación en Arnold: `mayapy herramientas/render_jardin.py <carpeta>`.
