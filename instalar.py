@@ -1,0 +1,80 @@
+"""Instalador de Árboles.
+
+Arrastra este archivo desde el explorador de archivos hasta el visor de Maya.
+Crea el módulo «arboles.mod» en tu carpeta de Maya apuntando a esta carpeta,
+carga el plugin, lo marca para que se cargue siempre y te pregunta dónde
+guardar la biblioteca. Para desinstalar, borra ese archivo .mod (la ruta se
+muestra en el Script Editor al instalar).
+
+No muevas la carpeta del plugin después de instalar; si lo haces, vuelve a
+arrastrar este archivo.
+"""
+
+import os
+import sys
+
+PLUGIN = "arboles_plugin"
+
+
+def _raiz():
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def contenido_mod(raiz, version):
+    raiz = raiz.replace("\\", "/")
+    return ("+ Arboles {version} {raiz}\n"
+            "scripts: scripts\n"
+            "plug-ins: plug-ins\n").format(version=version, raiz=raiz)
+
+
+def _version(raiz):
+    ruta = os.path.join(raiz, "scripts", "arboles", "__init__.py")
+    with open(ruta, encoding="utf-8") as f:
+        for linea in f:
+            if linea.startswith("__version__"):
+                return linea.split("=")[1].strip().strip("\"'")
+    return "0.0.0"
+
+
+def instalar():
+    from maya import cmds
+
+    raiz = _raiz()
+    version = _version(raiz)
+    carpeta_modulos = os.path.join(cmds.internalVar(userAppDir=True), "modules")
+    os.makedirs(carpeta_modulos, exist_ok=True)
+    ruta_mod = os.path.join(carpeta_modulos, "arboles.mod")
+    with open(ruta_mod, "w", encoding="utf-8") as f:
+        f.write(contenido_mod(raiz, version))
+    print("Árboles | módulo escrito en " + ruta_mod)
+
+    # Para esta sesión, sin reiniciar Maya.
+    scripts = os.path.join(raiz, "scripts")
+    if scripts not in sys.path:
+        sys.path.insert(0, scripts)
+    for nombre in [m for m in sys.modules if m == "arboles" or m.startswith("arboles.")]:
+        del sys.modules[nombre]
+
+    ruta_plugin = os.path.join(raiz, "plug-ins", PLUGIN + ".py")
+    if cmds.pluginInfo(PLUGIN, query=True, loaded=True):
+        cmds.unloadPlugin(PLUGIN, force=True)
+    cmds.loadPlugin(ruta_plugin)
+    cmds.pluginInfo(PLUGIN, edit=True, autoload=True)
+
+    from arboles import interfaz_maya
+    from arboles.i18n import t
+    interfaz_maya.crear_menu()
+    interfaz_maya.bienvenida()
+    cmds.confirmDialog(title=t("instalado_titulo"), message=t("instalado_texto", version=version),
+                       button=[t("boton_aceptar")])
+
+
+def onMayaDroppedPythonFile(*_):
+    """Maya llama a esta función al soltar el archivo en el visor."""
+    try:
+        instalar()
+    except Exception as error:
+        from maya import cmds
+        cmds.confirmDialog(title="Árboles", message="No se pudo instalar Árboles: {}".format(error),
+                           button=["OK"])
+        raise
