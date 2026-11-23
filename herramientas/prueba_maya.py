@@ -418,6 +418,32 @@ def fase3(cmds, tmp, bib):
     cmds.delete(copias[2])
     comprobar(cm.es_arbol(maestro) and len(plantar.plantados()) == 2, "borrar una copia deja el maestro")
 
+    # variaciones por copia: formas distintas (maestros por variante), tamaño e inclinación
+    import random
+    random.seed(5)
+    palmera = ejemplos.crear("palmera")
+    variadas = [plantar.plantar(palmera, (i * 300.0, 50.0, 3000.0), "bajo", variantes=4, tamano=0.2,
+                                inclinacion=8.0) for i in range(16)]
+    formas = sorted({cmds.getAttr(c + "." + plantar.ATRIBUTO_PLANTADO) for c in variadas})
+    comprobar(len(formas) == 4, "4 formas repartidas entre 16 copias ({})".format(len(formas)))
+    comprobar(sorted(plantar.variante_de(f) for f in formas) == [0, 1, 2, 3], "un maestro por variante")
+    comprobar(len({cm.triangulos(f) for f in formas}) > 1 or len({str(cmds.exactWorldBoundingBox(f)) for f in formas}) == 4,
+              "las variantes tienen forma distinta")
+    comprobar(all(cm.arbol_de(f).a_dict() == palmera.a_dict() for f in formas),
+              "las variantes guardan la receta del original (Editar maestro abre el original)")
+    escalas = [cmds.getAttr(c + ".scaleX") for c in variadas]
+    inclinaciones = [max(abs(cmds.getAttr(c + ".rotateX")), abs(cmds.getAttr(c + ".rotateZ"))) for c in variadas]
+    comprobar(all(0.8 - 1e-6 <= e <= 1.2 + 1e-6 for e in escalas) and len({round(e, 4) for e in escalas}) > 8,
+              "tamaño al azar dentro de ±20 %")
+    comprobar(all(i <= 8.0 + 1e-6 for i in inclinaciones) and max(inclinaciones) > 1.0, "inclinación al azar hasta 8°")
+    otra = palmera.copiar()
+    for m in otra.modulos.values():
+        if m.tipo == "rama":
+            m.fijar("densidad", 0.5)
+    comprobar(plantar.actualizar_maestros(otra) == 4, "actualizar el original rehace sus 4 variantes")
+    comprobar(all(cm.arbol_de(f).a_dict() == otra.a_dict() for f in formas), "las variantes siguen al original")
+    cmds.delete(variadas)
+
     # árboles de ejemplo en una biblioteca vacía
     from arboles.biblioteca import Biblioteca
     bib_ejemplos = Biblioteca(os.path.join(tmp, "biblioteca_ejemplos"))

@@ -262,3 +262,44 @@ class MaterialDeRecetasViejas(unittest.TestCase):
     def test_todas_las_especies(self):
         from arboles import arbol as modulo_arbol, especies
         self.assertEqual(set(modulo_arbol.ESPECIES_CON_TEXTURAS), set(especies.ESPECIES))
+
+
+class Variantes(unittest.TestCase):
+    """Formas distintas del mismo árbol para plantar copias variadas."""
+
+    def test_variante_cero_es_el_original(self):
+        from arboles import variantes
+        a = ejemplos.crear("roble")
+        self.assertEqual(variantes.variante(a, 0).a_dict(), a.a_dict())
+
+    def test_otras_cambian_y_se_repiten(self):
+        from arboles import variantes
+        a = ejemplos.crear("roble")
+        formas = [variantes.variante(a, k).a_dict() for k in range(variantes.MAXIMO)]
+        for k in range(1, variantes.MAXIMO):
+            self.assertNotEqual(formas[k], formas[0])
+            self.assertEqual(variantes.variante(a, k).a_dict(), formas[k])  # reproducible
+        self.assertNotEqual(formas[1], formas[2])
+
+    def test_misma_estructura_y_material(self):
+        from arboles import variantes
+        a = ejemplos.crear("palmera")
+        b = variantes.variante(a, 3)
+        self.assertEqual(list(a.modulos), list(b.modulos))
+        self.assertEqual(b.material, a.material)
+        for i, m in a.modulos.items():
+            self.assertEqual(b.modulos[i].padre, m.padre)
+            self.assertEqual(b.modulos[i].valores.get("follaje"), m.valores.get("follaje"))
+        self.assertGreater(b.triangulos("medio"), 0)
+
+    def test_sorteo_y_escala(self):
+        import random
+        from arboles import variantes
+        azar = random.Random(1)
+        self.assertEqual({variantes.sorteo(1, azar) for _ in range(50)}, {0})
+        self.assertEqual({variantes.sorteo(4, azar) for _ in range(200)}, {0, 1, 2, 3})
+        self.assertEqual({variantes.sorteo(9, azar) for _ in range(200)}, {0, 1, 2, 3})  # como mucho 4
+        for _ in range(50):
+            e, x, z = variantes.escala_e_inclinacion(0.2, 10.0, azar)
+            self.assertTrue(0.8 <= e <= 1.2 and abs(x) <= 10.0 and abs(z) <= 10.0)
+        self.assertEqual(variantes.escala_e_inclinacion(0.0, 0.0, azar), (1.0, 0.0, 0.0))

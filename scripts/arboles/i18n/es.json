@@ -227,5 +227,11 @@
   "resolucion_1k": "1K (recomendada)",
   "resolucion_2k": "2K",
   "resolucion_4k": "4K (render final)",
-  "resolucion_cambiada": "Texturas a {resolucion}: {texturas} imágenes cambiadas en la escena."
+  "resolucion_cambiada": "Texturas a {resolucion}: {texturas} imágenes cambiadas en la escena.",
+  "etiqueta_variantes": "Formas:",
+  "ayuda_variantes": "Cuántas formas distintas del mismo árbol se reparten al azar al plantar (1 = todas iguales). Cada forma cambia un poco sus ramas; todas siguen ligadas al original.",
+  "etiqueta_variacion_tamano": "Tamaño ±",
+  "ayuda_variacion_tamano": "Cada copia sale al azar hasta este porcentaje más grande o más pequeña.",
+  "etiqueta_variacion_inclinacion": "Inclinar hasta",
+  "ayuda_variacion_inclinacion": "Cada copia se inclina al azar hacia cualquier lado, como mucho estos grados."
 }
