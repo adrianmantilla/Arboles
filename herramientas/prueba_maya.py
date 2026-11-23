@@ -292,7 +292,11 @@ def ventana(cmds, tmp, editor):
             from PySide6 import QtWidgets
         except ImportError:
             from PySide2 import QtWidgets
-        app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+        app = QtWidgets.QApplication.instance()
+        if not isinstance(app, QtWidgets.QApplication):
+            # mayapy solo trae QCoreApplication: la ventana se prueba en Maya con interfaz
+            print("  (sin interfaz: la ventana se prueba con herramientas/captura_editor.py)")
+            return
         from arboles import editor_ui
         w = editor_ui.VentanaEditor(padre=QtWidgets.QWidget())
         w.show()
