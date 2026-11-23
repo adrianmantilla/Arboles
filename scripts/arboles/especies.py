@@ -274,7 +274,7 @@ def alcornoque():
     """Como la encina, pero con el tronco grueso de corcho y la copa algo más abierta."""
     return _especie("alcornoque", dict(altura=270, grosor=40, estrechamiento=0.45, inclinacion=7, curvatura=0.2,
                                        raices=0.7, irregularidad=0.6, nudos=5, torsion=35), [
-        dict(n=6, pos=(0.55, 1.0), angulo=55, angulo_punta=-18, largo=1.35, perfil="redondo", caida=0.12,
+        dict(n=6, pos=(0.55, 1.0), angulo=55, angulo_punta=-18, largo=1.1, perfil="redondo", caida=0.12,
              curvatura=0.2, grosor=0.68, irregularidad=0.5, nudos=2, torsion=30, var_angulo=12, tortuoso=0.14),
         dict(n=(3, 4), pos=(0.3, 1.0), angulo=50, largo=0.5, caida=0.25, curvatura=0.1, grosor=0.6,
              tortuoso=0.08, follaje="hoja_pequena", densidad=1.1, zona=0.8, tamano=1.5, hacia_arriba=0.5),

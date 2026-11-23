@@ -36,7 +36,7 @@ TIPOS = {
     "pinocha": (34, 15.0, 1.6, 9.0, 82.0, 0.18, 0.7, "espiral", "aguja"),            # pino piñonero: borla
     "aguja_corta": (44, 8.0, 1.5, 44.0, 62.0, 0.12, 0.8, "espiral", "aguja"),        # abeto: escobilla
     "foliolo": (24, 46.0, 3.4, 30.0, 68.0, 0.3, 0.7, "pluma", "foliolo"),            # palmera: tramo de hoja
-    "flor": (20, 2.8, 2.6, 8.0, 80.0, 0.0, 0.3, "flores", "petalo"),                # almendro, cerezo: cuatro flores
+    "flor": (30, 3.6, 3.3, 12.0, 80.0, 0.0, 0.3, "flores", "petalo"),               # almendro, cerezo: seis flores
 }
 # «pluma»: los grupos se encadenan a lo largo de la rama (el nervio de la hoja de palmera), con
 # foliolos a los dos lados; cada grupo mide lo mismo que la separación entre grupos.
