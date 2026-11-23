@@ -113,7 +113,7 @@ def main():
     cmds.file(save=True, type="mayaAscii", force=True)
     cmds.file(archivo, open=True, force=True)
     comprobar(construir_maya.es_arbol(grupo), "la receta sobrevive a guardar y abrir la escena")
-    comprobar(construir_maya.triangulos(grupo) == denso, "el follaje (instancias) sobrevive a guardar y abrir")
+    comprobar(construir_maya.triangulos(grupo) == denso, "el follaje sobrevive a guardar y abrir")
 
     fase2(cmds, tmp)
 
@@ -138,18 +138,17 @@ def fase2(cmds, tmp):
     avisos = []
     e.oyentes.append(lambda: avisos.append(1))
     comprobar(cm.es_arbol(ed.GRUPO), "el editor crea su grupo con receta")
-    comprobar(len(cmds.listRelatives(cm.PROTOTIPOS, children=True)) == 6, "6 prototipos de hojas (3 tipos x 2 calidades)")
     tri0 = cm.triangulos(e.grupo)
     comprobar(tri0 == e.arbol.triangulos("denso"), "triángulos con follaje iguales a los calculados ({})".format(tri0))
 
-    # follaje como instancias
+    # follaje: una malla por rama
     contenedor = cm._contenedor_follaje(cm._objeto(e.grupo), crear=False)
     grupos_hojas = cm._hijos(contenedor) if contenedor is not None else []
-    comprobar(len(grupos_hojas) == len(e.arbol.follaje()), "un grupo de hojas por rama con follaje ({})".format(len(grupos_hojas)))
-    hoja = cm._hijos(grupos_hojas[0])[0]
-    camino = om.MDagPath.getAPathTo(hoja)
-    camino.extendToShape()
-    comprobar(len(om.MDagPath.getAllPathsTo(camino.node())) > 10, "las hojas son instancias de un prototipo")
+    comprobar(len(grupos_hojas) == len(e.arbol.follaje()), "una malla de hojas por rama con follaje ({})".format(len(grupos_hojas)))
+    hojas = cm._nombre(grupos_hojas[0])
+    forma_hojas = cmds.listRelatives(hojas, shapes=True, fullPath=True)[0]
+    comprobar(cm.grupo_de(cm.HOJA) in (cmds.listConnections(forma_hojas, type="shadingEngine") or []),
+              "las hojas llevan el material clay de hoja")
 
     ramas = [i for i, m in e.arbol.modulos.items() if m.tipo == mod.RAMA]
     rama, otra = ramas[0], ramas[1]
@@ -257,9 +256,10 @@ def fase2(cmds, tmp):
                   "Generar {}: {} triángulos en {:.2f} s".format(nivel, cm.triangulos(g) if g else "-", segundos))
     cmds.undo()
     comprobar(not cm.existe(g), "deshacer Generar")
-    prototipos = len(cmds.listRelatives(cm.PROTOTIPOS, children=True))
-    cmds.delete(g if cm.existe(g) else [])
-    comprobar(prototipos == 6, "los prototipos siguen al borrar árboles")
+    cmds.redo()
+    comprobar(cm.existe(g), "rehacer Generar")
+    cmds.delete(g)
+    comprobar(cm.triangulos(e.grupo) == e.arbol.triangulos("denso"), "borrar la copia no toca el árbol del editor")
 
     # biblioteca
     bib = Biblioteca(os.path.join(tmp, "Documents", "Arboles"))

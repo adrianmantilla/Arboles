@@ -59,6 +59,20 @@ class Follaje(unittest.TestCase):
         m.fijar("densidad", 1.0)
         self.assertGreater(len(follaje.colocar(m)), pocos)
 
+    def test_combinar(self):
+        a, _, r = _arbol()
+        a.calcular()
+        matrices = follaje.colocar(a.modulos[r])
+        base = follaje.prototipo("hoja_ancha", "alta")
+        m = follaje.combinar("hoja_ancha", "denso", matrices)
+        self.assertEqual(len(m.vertices), len(base.vertices) * len(matrices))
+        self.assertEqual(m.triangulos, base.triangulos * len(matrices))
+        self.assertLess(max(m.conexiones), len(m.vertices))
+        self.assertLess(max(m.uv_ids), len(m.us))
+        x, y, z = base.vertices[0]
+        a0 = matrices[0]
+        self.assertAlmostEqual(m.vertices[0][1], x * a0[1] + y * a0[5] + z * a0[9] + a0[13])
+
     def test_opcion_invalida(self):
         with self.assertRaises(ValueError):
             mod.limitar(mod.RAMA, "follaje", "palmera")

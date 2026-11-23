@@ -1,8 +1,10 @@
 """Follaje: grupos de hojas prefabricados y dónde se cuelgan de cada rama.
 
 Los grupos de hojas son piezas fijas que trae el plugin, modeladas aquí en
-código para no depender de archivos externos. En Maya cada grupo es una
-instancia del prototipo, así que cien grupos pesan lo mismo que uno.
+código para no depender de archivos externos. En Maya las hojas de cada rama
+son una sola malla (todas sus copias del grupo juntas): así se borran y
+rehacen sin problemas al editar, y plantar el árbol entero como instancia
+(fase 3) es lo que ahorra memoria en el jardín.
 El eje Y del grupo apunta hacia fuera de la rama; el origen es donde se
 engancha. Tamaño de referencia: unos 55 cm.
 """
@@ -74,8 +76,36 @@ def prototipo(tipo, calidad="alta"):
     return m
 
 
+_CACHE = {}
+
+
+def prototipo_cache(tipo, calidad):
+    clave = (tipo, calidad)
+    if clave not in _CACHE:
+        _CACHE[clave] = prototipo(tipo, calidad)
+    return _CACHE[clave]
+
+
+def combinar(tipo, nivel, matrices, nombre="hojas"):
+    """Una malla con una copia del grupo ``tipo`` por cada matriz (filas, como Maya)."""
+    base = prototipo_cache(tipo, calidad_de_nivel(nivel))
+    m = Malla(nombre)
+    nv, nuv = len(base.vertices), len(base.us)
+    for k, a in enumerate(matrices):
+        for x, y, z in base.vertices:
+            m.vertices.append((x * a[0] + y * a[4] + z * a[8] + a[12],
+                               x * a[1] + y * a[5] + z * a[9] + a[13],
+                               x * a[2] + y * a[6] + z * a[10] + a[14]))
+        m.us += base.us
+        m.vs += base.vs
+        m.conteos += base.conteos
+        m.conexiones += [i + k * nv for i in base.conexiones]
+        m.uv_ids += [i + k * nuv for i in base.uv_ids]
+    return m
+
+
 def triangulos_prototipo(tipo, nivel):
-    return prototipo(tipo, calidad_de_nivel(nivel)).triangulos
+    return prototipo_cache(tipo, calidad_de_nivel(nivel)).triangulos
 
 
 def colocar(modulo):

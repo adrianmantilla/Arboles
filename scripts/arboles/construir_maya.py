@@ -8,8 +8,7 @@ Estructura de un árbol en la escena::
 
     <grupo>            atributos arbolesReceta (JSON) y arbolesNivel
       <id de módulo>   malla de tronco o rama, atributo arbolesModulo
-      follaje          grupos de hojas: instancias de los prototipos
-    arboles_prototipos (oculto)  un grupo de hojas por tipo y calidad
+      follaje          una malla de hojas por rama (atributo arbolesModulo)
 """
 
 import maya.api.OpenMaya as om
@@ -23,7 +22,6 @@ ATRIBUTO_RECETA = "arbolesReceta"
 ATRIBUTO_NIVEL = "arbolesNivel"
 ATRIBUTO_MODULO = "arbolesModulo"
 ATRIBUTO_FOLLAJE = "arbolesFollaje"
-PROTOTIPOS = "arboles_prototipos"
 CUADROS = "arboles_cuadros"
 CORTEZA = "arboles_clay_corteza"
 HOJA = "arboles_clay_hoja"
@@ -72,33 +70,9 @@ def leer_texto(nombre_nodo, atributo):
     return fn.findPlug(atributo, False).asString()
 
 
-def _soltar_instancias(obj):
-    """Quita de ``obj`` y su descendencia las formas instanciadas (las hojas).
-
-    Borrar un transform con MDagModifier borra también sus formas, aunque
-    estén instanciadas en otros sitios: sin esto se perdería el prototipo y
-    Maya acabaría con nodos inválidos (cuelgues y cierres).
-    """
-    pares = []
-    pila = [obj]
-    while pila:
-        actual = pila.pop()
-        fn = om.MFnDagNode(actual)
-        for i in range(fn.childCount()):
-            hijo = fn.child(i)
-            if hijo.hasFn(om.MFn.kShape) and om.MFnDagNode(hijo).parentCount() > 1:
-                pares.append((actual, hijo))
-            elif hijo.hasFn(om.MFn.kTransform):
-                pila.append(hijo)
-    for padre, hijo in pares:
-        om.MFnDagNode(padre).removeChild(hijo)
-
-
 def _borrar(objetos):
     if not objetos:
         return
-    for obj in objetos:
-        _soltar_instancias(obj)
     mod = om.MDagModifier()
     for obj in objetos:
         mod.deleteNode(obj)
@@ -143,26 +117,10 @@ def _crear_malla(datos, padre, nombre):
 # --- preparación (fuera del deshacer) -----------------------------------------
 
 def preparar():
-    """Materiales y prototipos de hojas. Usa cmds: llamar antes de construir."""
+    """Materiales clay. Usa cmds: llamar antes de construir (fuera del deshacer)."""
     corteza = materiales.crear_material(CORTEZA)[1]
     hoja = materiales.crear_material(HOJA)[1]
-    if not existe(PROTOTIPOS):
-        grupo = _transformada(PROTOTIPOS)
-        for tipo in follaje.TIPOS:
-            for calidad in follaje.CALIDADES:
-                datos = follaje.prototipo(tipo, calidad)
-                t = _transformada(datos.nombre, grupo)
-                _asignar(_crear_malla(datos, t, datos.nombre), hoja)
-        cmds.setAttr(PROTOTIPOS + ".visibility", 0)
-        cmds.setAttr(PROTOTIPOS + ".hiddenInOutliner", 1)
     return corteza, hoja
-
-
-def _forma_prototipo(tipo, nivel):
-    nombre = "{}_{}".format(tipo, follaje.calidad_de_nivel(nivel))
-    camino = _camino(PROTOTIPOS + "|" + nombre)
-    camino.extendToShape()
-    return camino.node()
 
 
 # --- construcción ---------------------------------------------------------------
@@ -176,19 +134,17 @@ def _construir_modulo(grupo, arbol, modulo, nivel, sg_corteza):
     return t
 
 
-def _construir_follaje(contenedor, modulo, nivel):
+def _construir_follaje(contenedor, modulo, nivel, sg_hoja):
     from arboles import follaje as fol
     matrices = fol.colocar(modulo)
     if not matrices:
         return None
-    grupo = _transformada(modulo.id + "_hojas", contenedor)
-    _atributo_texto(grupo, ATRIBUTO_MODULO, modulo.id)
-    forma = _forma_prototipo(modulo.valores["follaje"], nivel)
-    for i, m in enumerate(matrices):
-        t = _transformada("{}_hoja{}".format(modulo.id, i), grupo)
-        om.MFnTransform(t).setTransformation(om.MTransformationMatrix(om.MMatrix(m)))
-        om.MFnDagNode(t).addChild(forma, om.MFnDagNode.kNextPos, True)  # instancia
-    return grupo
+    nombre = modulo.id + "_hojas"
+    datos = fol.combinar(modulo.valores["follaje"], nivel, matrices, nombre)
+    t = _transformada(nombre, contenedor)
+    _atributo_texto(t, ATRIBUTO_MODULO, modulo.id)
+    _asignar(_crear_malla(datos, t, nombre), sg_hoja)
+    return t
 
 
 def _contenedor_follaje(grupo, crear=True):
@@ -214,6 +170,7 @@ def reconstruir(grupo, arbol, nivel, ids=None, guardar_receta=True):
     """
     grupo_obj = _objeto(grupo)
     sg_corteza = grupo_de(CORTEZA)
+    sg_hoja = grupo_de(HOJA)
     arbol.calcular()
     todos = set(arbol.modulos)
     rehacer = todos if ids is None else set(ids) & todos
@@ -231,7 +188,7 @@ def reconstruir(grupo, arbol, nivel, ids=None, guardar_receta=True):
     for m in arbol._orden():
         if m.id in rehacer:
             _construir_modulo(grupo_obj, arbol, m, nivel, sg_corteza)
-            _construir_follaje(contenedor, m, nivel)
+            _construir_follaje(contenedor, m, nivel, sg_hoja)
     if guardar_receta:
         _atributo_texto(grupo_obj, ATRIBUTO_RECETA, arbol.a_json())
     _atributo_texto(grupo_obj, ATRIBUTO_NIVEL, nivel)
@@ -295,10 +252,9 @@ def triangulos(grupo):
         total += cmds.polyEvaluate(nombre, triangle=True)
     contenedor = _contenedor_follaje(_objeto(grupo), crear=False)
     for hojas in (_hijos(contenedor) if contenedor is not None else []):
-        for t in _hijos(hojas):
-            camino = om.MDagPath.getAPathTo(t)
-            camino.extendToShape()
-            total += sum(om.MFnMesh(camino).getTriangles()[0])
+        camino = om.MDagPath.getAPathTo(hojas)
+        camino.extendToShape()
+        total += sum(om.MFnMesh(camino).getTriangles()[0])
     return total
 
 
