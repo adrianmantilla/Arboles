@@ -53,13 +53,13 @@ def main(carpeta):
         cmds.delete(g)
     tipos = list(follaje.TIPOS)
     for i, tipo in enumerate(tipos):
-        x = (i - (len(tipos) - 1) / 2.0) * 90.0
+        x = (i - (len(tipos) - 1) / 2.0) * 70.0
         malla = follaje.combinar(tipo, "alto", [(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, 200.0, 0, 1)],
                                  "hojas_" + tipo)
         grupo = om_crear(cm, malla, "catalogo_hojas_" + tipo)
         informe.append("{}: {} triángulos por grupo".format(tipo, malla.triangulos))
         del grupo
-    r1._camara(cmds, (0, 260, 620), (0, 225, 0))
+    r1._camara(cmds, (0, 280, 760), (0, 225, 0))
     informe.append("hojas: " + r1._render(cmds, os.path.join(carpeta, "catalogo_hojas")))
     print("\n".join(informe))
     sys.stdout.flush()
