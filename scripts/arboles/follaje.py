@@ -35,7 +35,13 @@ TIPOS = {
     "aguja": (36, 12.0, 1.4, 20.0, 70.0, 0.1, 0.7, "espiral", "aguja"),              # pinos en general
     "pinocha": (34, 15.0, 1.6, 9.0, 82.0, 0.18, 0.7, "espiral", "aguja"),            # pino piñonero: borla
     "aguja_corta": (44, 8.0, 1.5, 44.0, 62.0, 0.12, 0.8, "espiral", "aguja"),        # abeto: escobilla
+    "foliolo": (24, 46.0, 3.4, 30.0, 68.0, 0.3, 0.7, "pluma", "foliolo"),            # palmera: tramo de hoja
+    "flor": (20, 2.8, 2.6, 8.0, 80.0, 0.0, 0.3, "flores", "petalo"),                # almendro, cerezo: cuatro flores
 }
+# «pluma»: los grupos se encadenan a lo largo de la rama (el nervio de la hoja de palmera), con
+# foliolos a los dos lados; cada grupo mide lo mismo que la separación entre grupos.
+# Agujas, foliolos y pétalos son tiras estrechas: dos columnas y la mitad de filas.
+_TIRAS = ("aguja", "foliolo", "petalo")
 # calidad: filas a lo largo de cada hoja (las agujas usan la mitad)
 CALIDADES = {"alta": 6, "baja": 2}
 _DORADO = math.radians(137.5)
@@ -58,6 +64,10 @@ def contorno(forma, t, redondez=0.7, filas=6):
         if filas >= 4 and 0 < k < filas:
             ancho *= 1.0 if k % 2 else 0.45
         return ancho
+    if forma == "petalo":  # redondo, estrecho en la uña
+        return math.sin(math.pi * min(0.97, 0.06 + 0.9 * t)) ** 0.4
+    if forma == "foliolo":  # largo y estrecho, en punta
+        return (1.0 - t ** 2) ** 0.5 * min(1.0, 0.4 + 3.0 * t)
     if forma == "lobulada" and filas >= 4:
         # Filas impares: lóbulo; pares: entrante. Tres lóbulos por lado con 6 filas.
         k = int(round(t * filas))
@@ -72,8 +82,8 @@ def _hoja(m, origen, eje, lado, largo, ancho, curva, filas, redondez=0.7, cuadro
     Las agujas son una tira plana (una cara por fila) y con la mitad de filas.
     """
     cu, cv = (cuadro % 2) * 0.5, (cuadro // 2) * 0.5
-    columnas = (-1.0, 1.0) if forma == "aguja" else (-1.0, 0.0, 1.0)
-    if forma == "aguja":
+    columnas = (-1.0, 1.0) if forma in _TIRAS else (-1.0, 0.0, 1.0)
+    if forma in _TIRAS:
         filas = max(1, filas // 2)
     n = len(columnas)
     normal = v.unitario(v.cruz(eje, lado)) or v.perpendicular(eje)
@@ -107,13 +117,36 @@ def prototipo(tipo, calidad="alta"):
     m = Malla("{}_{}".format(tipo, calidad))
     azar = random.Random(len(tipo) * 7919)
     apertura = math.radians(apertura)
+    if disposicion == "flores":
+        # Flores de cinco pétalos abiertas en un punto, repartidas alrededor del tallito y mirando afuera.
+        flores = max(1, hojas // 5)
+        for k in range(flores):
+            t = (k + 0.6) / flores
+            a = k * _DORADO + azar.uniform(-0.3, 0.3)
+            radial = (math.cos(a), 0.0, math.sin(a))
+            centro = v.suma((0.0, tallo * t, 0.0), v.escala(radial, largo * 0.5))
+            cara = v.unitario(v.suma(v.escala(v.ARRIBA, 0.7), radial))
+            base = v.unitario(v.cruz(cara, v.perpendicular(cara)))
+            for j in range(5):
+                direccion = v.rotar(base, cara, j * 2.0 * math.pi / 5.0 + k * 0.45)
+                eje = v.unitario(v.suma(v.escala(direccion, math.sin(apertura)), v.escala(cara, math.cos(apertura))))
+                lado = v.unitario(v.cruz(cara, direccion)) or v.perpendicular(eje)
+                escala = 1.0 + azar.uniform(-0.1, 0.1)
+                _hoja(m, centro, eje, lado, largo * escala, ancho * escala, curva, filas, redondez,
+                      azar.randrange(4), forma)
+        return m
     for i in range(hojas):
         t = 0.25 + 0.75 * i / max(1, hojas - 1)
-        if i == hojas - 1:
+        if disposicion == "pluma":
+            t, inclinacion = (i // 2 + 0.5) / ((hojas + 1) // 2), apertura
+        elif i == hojas - 1:
             t, inclinacion = 1.0, 0.15
         else:
             inclinacion = apertura * (1.0 - 0.3 * t)
-        if disposicion == "plano":
+        if disposicion == "pluma":
+            radial = v.unitario((1.0 if i % 2 else -1.0, 0.0, azar.uniform(-0.15, 0.15)))
+            escala = 1.0 + azar.uniform(-0.06, 0.06)
+        elif disposicion == "plano":
             radial = (1.0 if i % 2 else -1.0, 0.0, azar.uniform(-0.12, 0.12))
             radial = v.unitario(radial)
             escala = 1.0 - 0.45 * t * t + azar.uniform(-0.05, 0.05)  # más cortas hacia la punta
@@ -123,7 +156,7 @@ def prototipo(tipo, calidad="alta"):
             escala = 0.75 + 0.25 * t + azar.uniform(-0.08, 0.08)
         eje = v.unitario(v.suma(v.escala(v.ARRIBA, math.cos(inclinacion)), v.escala(radial, math.sin(inclinacion))))
         lado = v.unitario(v.cruz(v.ARRIBA, radial)) or (1.0, 0.0, 0.0)
-        if disposicion == "plano":
+        if disposicion in ("plano", "pluma"):
             lado = v.unitario(v.cruz((0.0, 0.0, 1.0), eje)) or lado  # la hoja tumbada en el plano
         _hoja(m, (0.0, tallo * t, 0.0), eje, lado, largo * escala, ancho * escala, curva, filas, redondez,
               azar.randrange(4), forma)
@@ -177,12 +210,21 @@ def colocar(modulo):
     inicio = 1.0 - val["zona"]
     separacion = 30.0 * tamano / max(val["densidad"], 0.05)
     cantidad = max(0, int(round(guia.largo * val["zona"] / separacion)))  # 0: solo el de la punta
+    pluma = TIPOS[tipo][7] == "pluma"
+    if pluma:  # tramos seguidos a lo largo de la rama, sin el grupo extra de la punta
+        cantidad = max(1, int(round(guia.largo * val["zona"] / separacion)))
     matrices = []
-    for i in range(cantidad + 1):
+    for i in range(cantidad if pluma else cantidad + 1):
         punta = i == cantidad
-        s = 1.0 if punta else min(1.0, inicio + (i + azar.random() * 0.8) / cantidad * val["zona"])
+        if pluma:
+            s = inicio + val["zona"] * i / float(cantidad)
+        else:
+            s = 1.0 if punta else min(1.0, inicio + (i + azar.random() * 0.8) / cantidad * val["zona"])
         t, n, b = guia.marco(s)
-        if punta:
+        if pluma:
+            eje = t
+            sitio = guia.punto(s)
+        elif punta:
             eje = t
             sitio = guia.punto(1.0)
         else:
@@ -193,7 +235,7 @@ def colocar(modulo):
         eje = v.unitario(v.suma(v.escala(eje, 1.0 - val["hacia_arriba"]),
                                 v.escala(v.ARRIBA, val["hacia_arriba"]))) or eje
         x = v.unitario(v.cruz(eje, v.perpendicular(eje)))
-        if TIPOS[tipo][7] == "plano":
+        if TIPOS[tipo][7] in ("plano", "pluma"):
             # Ramilletes planos tumbados de cara al cielo, como crecen para coger luz.
             x = v.unitario(v.cruz(eje, v.ARRIBA)) or x
             x = v.rotar(x, eje, azar.uniform(-0.45, 0.45))
@@ -201,6 +243,16 @@ def colocar(modulo):
             x = v.rotar(x, eje, azar.uniform(0.0, 2.0 * math.pi))
         z = v.cruz(x, eje)
         e = tamano * azar.uniform(0.8, 1.2)
+        if pluma:  # foliolos más cortos en la base y en la punta de la hoja
+            f = (s - inicio) / max(val["zona"], 1e-6)
+            e = tamano * (0.55 + 0.45 * math.sin(math.pi * min(1.0, 0.15 + 0.85 * f)))
+            matrices.append((
+                x[0] * e, x[1] * e, x[2] * e, 0.0,
+                eje[0] * tamano, eje[1] * tamano, eje[2] * tamano, 0.0,
+                (x[1] * eje[2] - x[2] * eje[1]) * e, (x[2] * eje[0] - x[0] * eje[2]) * e,
+                (x[0] * eje[1] - x[1] * eje[0]) * e, 0.0,
+                sitio[0], sitio[1], sitio[2], 1.0))
+            continue
         matrices.append((
             x[0] * e, x[1] * e, x[2] * e, 0.0,
             eje[0] * e, eje[1] * e, eje[2] * e, 0.0,

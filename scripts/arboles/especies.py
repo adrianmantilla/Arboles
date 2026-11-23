@@ -188,12 +188,13 @@ def olivo():
 
 
 def arbusto():
-    """Muchos tallos que salen del suelo y se abren hacia fuera, cada uno ramificado, con hoja pequeña."""
-    # El «tronco» es solo la cepa, casi a ras de suelo: lo que se ve son los tallos.
-    return _especie("arbusto", dict(altura=4, grosor=9, estrechamiento=0.5, raices=0.2,
+    """Muchos tallos finos que salen del suelo y se abren hacia fuera, cada uno ramificado, con hoja pequeña."""
+    # El «tronco» es solo la cepa, a ras de suelo: lo que se ve son los tallos, abiertos desde abajo
+    # (si salen juntos y gruesos, de lejos parecen un tronco).
+    return _especie("arbusto", dict(altura=2, grosor=6, estrechamiento=0.5, raices=0.0,
                                     irregularidad=0.3), [
-        dict(n=11, pos=(0.15, 1.0), angulo=30, angulo_punta=0, largo=33.0, caida=0.3, curvatura=-0.15,
-             grosor=0.45, irregularidad=0.2, var_angulo=14, tortuoso=0.1),
+        dict(n=14, pos=(0.1, 1.0), angulo=44, angulo_punta=0, largo=60.0, caida=0.35, curvatura=-0.2,
+             grosor=0.32, estrechamiento=0.35, irregularidad=0.2, var_angulo=16, tortuoso=0.12),
         dict(n=(3, 4), pos=(0.25, 1.0), angulo=45, largo=0.45, caida=0.3, grosor=0.6,
              follaje="hoja_redonda", densidad=1.2, zona=0.95, tamano=0.9, hacia_arriba=0.5),
     ], 97)
@@ -269,6 +270,55 @@ def arce_otono():
     return arbol
 
 
+def alcornoque():
+    """Como la encina, pero con el tronco grueso de corcho y la copa algo más abierta."""
+    return _especie("alcornoque", dict(altura=270, grosor=40, estrechamiento=0.45, inclinacion=7, curvatura=0.2,
+                                       raices=0.7, irregularidad=0.6, nudos=5, torsion=35), [
+        dict(n=6, pos=(0.55, 1.0), angulo=55, angulo_punta=-18, largo=1.35, perfil="redondo", caida=0.12,
+             curvatura=0.2, grosor=0.68, irregularidad=0.5, nudos=2, torsion=30, var_angulo=12, tortuoso=0.14),
+        dict(n=(3, 4), pos=(0.3, 1.0), angulo=50, largo=0.5, caida=0.25, curvatura=0.1, grosor=0.6,
+             tortuoso=0.08, follaje="hoja_pequena", densidad=1.1, zona=0.8, tamano=1.5, hacia_arriba=0.5),
+        dict(n=(2, 3), pos=(0.4, 1.0), angulo=45, largo=0.5, caida=0.3, grosor=0.6,
+             follaje="hoja_pequena", densidad=1.6, zona=0.95, tamano=1.5, hacia_arriba=0.5),
+    ], 127)
+
+
+def arbol_seco():
+    """Árbol muerto: tronco torcido y ramas nudosas que se quiebran en ángulos, sin una hoja."""
+    return _especie("arbol_seco", dict(altura=400, grosor=30, estrechamiento=0.45, inclinacion=8, curvatura=0.2,
+                                       raices=0.7, irregularidad=0.7, nudos=7, torsion=50), [
+        dict(n=6, pos=(0.4, 1.0), angulo=45, angulo_punta=-18, largo=0.8, perfil="redondo", caida=0.05,
+             curvatura=0.1, grosor=0.62, irregularidad=0.5, nudos=3, torsion=40, var_angulo=14, tortuoso=0.11),
+        dict(n=(2, 3), pos=(0.3, 0.95), angulo=48, largo=0.5, caida=0.05, grosor=0.55, irregularidad=0.3,
+             nudos=1, var_angulo=14, tortuoso=0.09),
+        dict(n=(2, 3), pos=(0.4, 0.95), angulo=42, largo=0.42, caida=0.08, grosor=0.55, var_angulo=16,
+             tortuoso=0.08),
+    ], 131)
+
+
+def almendro():
+    """Almendro en flor: tronco corto y torcido, copa abierta en vaso de ramitas finas cubiertas de flores."""
+    return _especie("almendro", dict(altura=150, grosor=17, estrechamiento=0.45, inclinacion=8, curvatura=0.2,
+                                     raices=0.5, irregularidad=0.5, nudos=3, torsion=40), [
+        dict(n=4, pos=(0.7, 1.0), angulo=38, largo=1.9, caida=0.1, curvatura=0.15, grosor=0.62,
+             irregularidad=0.35, nudos=1, torsion=30, var_angulo=10, tortuoso=0.12),
+        dict(n=(3, 4), pos=(0.3, 0.95), angulo=42, largo=0.5, caida=0.15, curvatura=0.1, grosor=0.55,
+             tortuoso=0.1, follaje="flor", densidad=1.3, zona=0.75, tamano=1.1, hacia_arriba=0.6),
+        dict(n=(3, 4), pos=(0.3, 1.0), angulo=40, largo=0.45, caida=0.2, grosor=0.55,
+             follaje="flor", densidad=1.35, zona=0.95, tamano=1.1, hacia_arriba=0.6),
+    ], 137)
+
+
+def palmera():
+    """Palmera: tronco alto, recto y sin ramas, con un penacho de hojas largas y arqueadas llenas de foliolos."""
+    return _especie("palmera", dict(altura=800, grosor=26, estrechamiento=0.08, inclinacion=5, curvatura=0.1,
+                                    raices=0.3, irregularidad=0.12), [
+        dict(n=18, pos=(0.94, 1.0), angulo=105, angulo_punta=-85, largo=0.4, caida=0.45, curvatura=0.3,
+             grosor=0.22, estrechamiento=0.15, irregularidad=0.05, var_angulo=8,
+             follaje="foliolo", densidad=1.0, zona=0.85, tamano=1.0, hacia_arriba=0.0),
+    ], 139)
+
+
 ESPECIES = {
     "roble": roble,
     "haya": haya,
@@ -285,4 +335,8 @@ ESPECIES = {
     "castano": castano,
     "arce": arce,
     "arce_otono": arce_otono,
+    "alcornoque": alcornoque,
+    "arbol_seco": arbol_seco,
+    "almendro": almendro,
+    "palmera": palmera,
 }

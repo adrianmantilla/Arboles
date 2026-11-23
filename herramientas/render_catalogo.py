@@ -45,22 +45,26 @@ def main(carpeta, *opciones):
     r1._ajustes(cmds)
     informe = []
     nombres = [p for p in ejemplos.PLANTILLAS if p != "vacio"]
-    # En tres filas al tresbolillo, de delante (los bajos) a atrás (los altos)
+    # En filas de cuatro al tresbolillo, de delante (los bajos) a atrás (los altos)
     orden = sorted(nombres, key=lambda p: ejemplos.crear(p).calcular().tronco.guia.largo)
     sitios = {}
     for i, plantilla in enumerate(orden):
-        fila, columna = divmod(i, 3)
-        sitios[plantilla] = ((columna - 1) * 1700.0 + (fila % 2) * 600.0 - 300.0, -fila * 2000.0)
+        fila, columna = divmod(i, 4)
+        sitios[plantilla] = ((columna - 1.5) * 1450.0 + (fila % 2) * 725.0 - 362.0, -fila * 1500.0)
+    filas = (len(orden) + 3) // 4
     for plantilla in nombres:
         arbol = ejemplos.crear(plantilla)
         cm.preparar(arbol)  # materiales con texturas de la especie
         x, z = sitios[plantilla]
         cm.crear(arbol, "medio", "catalogo_" + plantilla, posicion=(x, 0.0, z))
         informe.append("{}: {} triángulos ({})".format(plantilla, arbol.triangulos("medio"), arbol.semaforo()[0]))
-    r1._camara(cmds, (0, 1300, 5200), (0, 450, -2000))
+    fondo = -(filas - 1) * 1500.0
+    r1._camara(cmds, (0, 2500, 6200), (0, 450, fondo * 0.5))
     informe.append("catálogo: " + r1._render(cmds, os.path.join(carpeta, "catalogo")))
     if "--cerca" in opciones:
-        informe += _cerca(cmds, cm, nombres, carpeta)
+        # --solo=roble,palmera: solo esas vistas de cerca (para probar unas pocas especies)
+        solo = [o.split("=", 1)[1].split(",") for o in opciones if o.startswith("--solo=")]
+        informe += _cerca(cmds, cm, nombres, carpeta, solo[0] if solo else None)
 
     # los grupos de hojas, de cerca, en una fila a 2 m del suelo
     for g in cmds.ls("catalogo_*", assemblies=True):
@@ -79,11 +83,13 @@ def main(carpeta, *opciones):
     sys.stdout.flush()
 
 
-def _cerca(cmds, cm, nombres, carpeta):
+def _cerca(cmds, cm, nombres, carpeta, solo=None):
     """Cada árbol a unos metros, solo: el tronco abajo y la copa encima."""
     informe = []
     grupos = {p: cmds.ls("catalogo_" + p, assemblies=True, long=True)[0] for p in nombres}
     for plantilla in nombres:
+        if solo and plantilla not in solo:
+            continue
         for otra, g in grupos.items():
             cmds.setAttr(g + ".visibility", otra == plantilla)
         caja = cmds.exactWorldBoundingBox(grupos[plantilla])

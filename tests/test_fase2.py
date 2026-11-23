@@ -199,8 +199,12 @@ class Frondosidad(unittest.TestCase):
             if plantilla == "vacio":
                 continue
             tri = [ejemplos.crear(plantilla, f).triangulos("medio") for f in ejemplos.FRONDOSIDADES]
-            self.assertLess(tri[0], tri[1], plantilla)
-            self.assertLess(tri[1], tri[2], plantilla)
+            sin_hojas = ejemplos.PLANTILLAS[plantilla]().triangulos("medio", con_follaje=False)
+            if tri[1] == sin_hojas:  # árbol sin hojas (árbol seco): la frondosidad no cambia nada
+                self.assertEqual(tri[0], tri[2], plantilla)
+            else:
+                self.assertLess(tri[0], tri[1], plantilla)
+                self.assertLess(tri[1], tri[2], plantilla)
             self.assertEqual(ejemplos.crear(plantilla).a_dict(), ejemplos.PLANTILLAS[plantilla]().a_dict())
 
     def test_ninguna_roja(self):
