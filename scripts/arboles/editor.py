@@ -299,8 +299,7 @@ class Editor(object):
 
         def pulsar():
             x, y, _ = cmds.draggerContext(CONTEXTO_CLIC, query=True, anchorPoint=True)
-            origen, direccion = om.MPoint(), om.MVector()
-            omui.M3dView.active3dView().viewToWorld(int(x), int(y), origen, direccion)
+            origen, direccion = omui.M3dView.active3dView().viewToWorld(int(x), int(y))
             id_, punto = self.modulo_bajo_rayo((origen.x, origen.y, origen.z),
                                                (direccion.x, direccion.y, direccion.z))
             if id_ is None:
