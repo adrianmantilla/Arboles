@@ -33,8 +33,19 @@ en el Plug-in Manager.
 | Plantar desde la biblioteca... | Panel con miniaturas para plantar con un clic, Desligar, Editar maestro y Ejemplos |
 | Herramientas rápidas | Árbol de ejemplo, generar versión ligera, cuadros en la corteza |
 | Carpeta de la biblioteca... | Cambia dónde se guardan tus árboles |
+| Resolución de texturas | 512 (aula), 1K (recomendada), 2K o 4K (render final); cambia también las texturas ya puestas en la escena |
 | Crear materiales clay | Crea `arboles_clay_corteza` y `arboles_clay_hoja` (standardSurface, se ven en el visor y en Arnold) |
 | Comprobar instalación | Versión de Maya, Arnold y carpeta de la biblioteca |
+
+## Texturas
+
+Cada especie de serie trae su corteza (color, relieve y rugosidad, repetible) y su hoja
+(color, relieve, rugosidad y trasluz) en `texturas/<especie>/<resolución>/`. Un árbol usa
+las de su «Material» (combo del editor); «Clay» es gris neutro para modelar. Las cortezas
+se generan con `herramientas/texturas_corteza.py` (Substance 3D Designer, `sbsrender`) y
+las hojas con `herramientas/texturas_hojas.py` (numpy y Pillow). Ver `texturas/LEEME.md`.
+Las cortezas parten de materiales de serie de Adobe Substance: úsalas en clase y revisa
+la licencia antes de publicarlas fuera del curso.
 
 ## Idiomas
 

@@ -21,7 +21,7 @@ import render_fase1 as r1  # noqa: E402
 def _plantar_jardin(cmds):
     from arboles import construir_maya, ejemplos, materiales, plantar
     cmds.file(new=True, force=True)
-    construir_maya.preparar()
+    construir_maya.preparar()  # clay; plantar() prepara las texturas de cada especie
     suelo = cmds.polyPlane(width=8000, height=8000, subdivisionsX=1, subdivisionsY=1, name="suelo")[0]
     materiales.asignar(suelo, "arboles_clay_hoja")
     cielo = cmds.shadingNode("aiSkyDomeLight", asLight=True, name="cielo")

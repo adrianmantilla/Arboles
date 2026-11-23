@@ -76,6 +76,13 @@ class PruebaTexturasDeSerie(unittest.TestCase):
             # 2K y 4K no hacen falta en las hojas: se usa la más cercana.
             self.assertEqual(tx.ruta(especie, "hoja", "color", "4k"), canales["color"])
 
+    def test_cada_especie_trae_su_corteza(self):
+        for especie in especies.ESPECIES:
+            for res in ("512", "1k", "2k"):
+                canales = tx.canales(especie, "corteza", res)
+                self.assertEqual(sorted(canales), ["color", "normal", "rugosidad"], (especie, res))
+                self.assertIn(os.sep + res + os.sep, canales["color"])
+
     def test_nombres_de_archivo_conocidos(self):
         for juego in tx.juegos():
             for res in os.listdir(os.path.join(tx.carpeta_texturas(), juego)):

@@ -1,9 +1,11 @@
 """Render con Arnold del catálogo: todas las plantillas en fila (herramienta de desarrollo, fase 4).
 
-    mayapy herramientas/render_catalogo.py /ruta/de/salida
+    mayapy herramientas/render_catalogo.py /ruta/de/salida [--cerca]
 
-Deja catalogo.png (las plantillas en frondosidad normal, calidad media) y
-catalogo_hojas.png (un grupo de cada tipo de hoja, de cerca).
+Deja catalogo.png (las plantillas en frondosidad normal, calidad media, cada
+una con las texturas de su especie si están instaladas) y catalogo_hojas.png
+(un grupo de cada tipo de hoja, de cerca). Con --cerca, además, cerca_<especie>.png:
+cada árbol visto a unos metros, para juzgar corteza y hojas.
 """
 
 import os
@@ -30,7 +32,7 @@ def _luces(cmds):
     cmds.setAttr(cmds.listRelatives(cielo, shapes=True)[0] + ".intensity", 0.6)
 
 
-def main(carpeta):
+def main(carpeta, *opciones):
     carpeta = os.path.abspath(carpeta)
     cmds = r1._iniciar()
     from arboles import construir_maya as cm
@@ -45,12 +47,15 @@ def main(carpeta):
     paso = 1300.0
     for i, plantilla in enumerate(nombres):
         arbol = ejemplos.crear(plantilla)
+        cm.preparar(arbol)  # materiales con texturas de la especie
         x = (i - (len(nombres) - 1) / 2.0) * paso
         cm.crear(arbol, "medio", "catalogo_" + plantilla, posicion=(x, 0.0, 0.0))
         informe.append("{}: {} triángulos ({})".format(plantilla, arbol.triangulos("medio"), arbol.semaforo()[0]))
     ancho = paso * len(nombres)
     r1._camara(cmds, (0, 700, ancho * 1.25), (0, 420, 0))
     informe.append("catálogo: " + r1._render(cmds, os.path.join(carpeta, "catalogo")))
+    if "--cerca" in opciones:
+        informe += _cerca(cmds, cm, nombres, paso, carpeta)
 
     # los grupos de hojas, de cerca, en una fila a 2 m del suelo
     for g in cmds.ls("catalogo_*", assemblies=True):
@@ -67,6 +72,24 @@ def main(carpeta):
     informe.append("hojas: " + r1._render(cmds, os.path.join(carpeta, "catalogo_hojas")))
     print("\n".join(informe))
     sys.stdout.flush()
+
+
+def _cerca(cmds, cm, nombres, paso, carpeta):
+    """Cada árbol a unos metros, solo: el tronco abajo y la copa encima."""
+    informe = []
+    grupos = {p: cmds.ls("catalogo_" + p, assemblies=True, long=True)[0] for p in nombres}
+    for i, plantilla in enumerate(nombres):
+        for otra, g in grupos.items():
+            cmds.setAttr(g + ".visibility", otra == plantilla)
+        x = (i - (len(nombres) - 1) / 2.0) * paso
+        caja = cmds.exactWorldBoundingBox(grupos[plantilla])
+        alto = caja[4] - caja[1]
+        distancia = max(450.0, alto * 0.75)
+        r1._camara(cmds, (x + distancia * 0.35, alto * 0.3, distancia), (x, alto * 0.38, 0))
+        informe.append("cerca {}: {}".format(plantilla, r1._render(cmds, os.path.join(carpeta, "cerca_" + plantilla))))
+    for g in grupos.values():
+        cmds.setAttr(g + ".visibility", True)
+    return informe
 
 
 def om_crear(cm, malla, nombre):

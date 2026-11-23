@@ -80,9 +80,15 @@ independiente que ya no cambia con el maestro.
 
 ## 5. Render
 
-Los árboles llevan materiales clay (`arboles_clay_corteza` y `arboles_clay_hoja`) que se ven
-en el visor y en Arnold. Puedes cambiarlos o asignar los tuyos. Las UVs de la corteza son
-limpias: cualquier textura repetible encaja.
+Cada especie de ejemplo trae sus texturas de corteza y de hoja. En el editor, el desplegable
+**Material** elige cuáles usa tu árbol: la de una especie, o **Clay** (gris neutro, cómodo
+para modelar). Las texturas se ven en el visor y en Arnold.
+
+En **Árboles › Resolución de texturas** eliges la calidad: 512 o 1K mientras trabajas en
+clase, 2K o 4K para el render final. Cambiarla actualiza los árboles que ya tienes en la escena.
+
+También puedes asignar tus propios materiales. Las UVs de la corteza son limpias: cualquier
+textura repetible encaja.
 
 ## Si algo falla
 
