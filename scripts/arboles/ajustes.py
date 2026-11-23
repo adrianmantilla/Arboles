@@ -10,7 +10,7 @@ import os
 import sys
 
 NOMBRE_CARPETA_BIBLIOTECA = "Arboles"
-SUBCARPETAS_BIBLIOTECA = ("arboles", "miniaturas")
+SUBCARPETAS_BIBLIOTECA = ("arboles", "miniaturas", "ramas")
 _ARCHIVO = "ajustes.json"
 
 

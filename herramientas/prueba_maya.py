@@ -1,4 +1,4 @@
-"""Prueba de las fases 0 y 1 dentro de Maya, sin interfaz (herramienta de desarrollo).
+"""Prueba de las fases 0, 1 y 2 dentro de Maya, sin interfaz (herramienta de desarrollo).
 
 Desde la terminal, con el mayapy de cada versión:
 
@@ -68,10 +68,11 @@ def main():
     # Fase 1: módulos, Generar y UVs
     import time
     from arboles import construir_maya, ejemplos
+    construir_maya.preparar()
     inicio = time.time()
     grupo = construir_maya.crear(ejemplos.copa_redonda())
     print("  (árbol denso en {:.2f} s)".format(time.time() - inicio))
-    mallas = cmds.listRelatives(grupo, children=True, type="transform") or []
+    mallas = construir_maya.mallas(grupo)
     comprobar(len(mallas) == 22, "el árbol de ejemplo tiene 22 mallas (tronco y ramas)")
     denso = construir_maya.triangulos(grupo)
     esperado = ejemplos.copa_redonda().triangulos("denso")
@@ -88,7 +89,7 @@ def main():
     print("  (Generar medio en {:.2f} s)".format(time.time() - inicio))
     medio = construir_maya.triangulos(grupo)
     comprobar(medio < denso / 5.0, "Generar medio reduce triángulos ({} → {})".format(denso, medio))
-    mallas = cmds.listRelatives(grupo, children=True, type="transform") or []
+    mallas = construir_maya.mallas(grupo)
     caja_medio = cmds.polyEvaluate(mallas[0], boundingBox2d=True)
     comprobar(all(abs(a - b) < 1e-4 for par_a, par_b in zip(caja_denso, caja_medio)
                   for a, b in zip(par_a, par_b)),
@@ -112,9 +113,202 @@ def main():
     cmds.file(save=True, type="mayaAscii", force=True)
     cmds.file(archivo, open=True, force=True)
     comprobar(construir_maya.es_arbol(grupo), "la receta sobrevive a guardar y abrir la escena")
+    comprobar(construir_maya.triangulos(grupo) == denso, "el follaje (instancias) sobrevive a guardar y abrir")
+
+    fase2(cmds, tmp)
 
     cmds.unloadPlugin("arboles_plugin")
     comprobar(not cmds.pluginInfo("arboles_plugin", query=True, loaded=True), "el plugin se descarga")
+
+
+def fase2(cmds, tmp):
+    import time
+    import maya.api.OpenMaya as om
+    from arboles import acciones, ejemplos
+    from arboles import construir_maya as cm
+    from arboles import editor as ed
+    from arboles import modulos as mod
+    from arboles.biblioteca import Biblioteca
+
+    print("Fase 2")
+    cmds.file(new=True, force=True)
+    cmds.undoInfo(state=True, infinity=True)
+    comprobar(acciones.hay_comando(), "el comando arbolesAccion está registrado")
+    e = ed.Editor().abrir("copa_redonda")
+    avisos = []
+    e.oyentes.append(lambda: avisos.append(1))
+    comprobar(cm.es_arbol(ed.GRUPO), "el editor crea su grupo con receta")
+    comprobar(len(cmds.listRelatives(cm.PROTOTIPOS, children=True)) == 6, "6 prototipos de hojas (3 tipos x 2 calidades)")
+    tri0 = cm.triangulos(e.grupo)
+    comprobar(tri0 == e.arbol.triangulos("denso"), "triángulos con follaje iguales a los calculados ({})".format(tri0))
+
+    # follaje como instancias
+    contenedor = cm._contenedor_follaje(cm._objeto(e.grupo), crear=False)
+    grupos_hojas = cm._hijos(contenedor) if contenedor is not None else []
+    comprobar(len(grupos_hojas) == len(e.arbol.follaje()), "un grupo de hojas por rama con follaje ({})".format(len(grupos_hojas)))
+    hoja = cm._hijos(grupos_hojas[0])[0]
+    camino = om.MDagPath.getAPathTo(hoja)
+    camino.extendToShape()
+    comprobar(len(om.MDagPath.getAllPathsTo(camino.node())) > 10, "las hojas son instancias de un prototipo")
+
+    ramas = [i for i, m in e.arbol.modulos.items() if m.tipo == mod.RAMA]
+    rama, otra = ramas[0], ramas[1]
+    largo0 = e.arbol.modulos[rama].valores["longitud"]
+    largo_otra = e.arbol.modulos[otra].valores["longitud"]
+
+    # deslizador: vista previa y un solo paso de deshacer
+    inicio = time.time()
+    e.empezar_cambio([rama])
+    for x in (largo0 + 10, largo0 + 30, largo0 + 50):
+        e.cambiar_valor([rama], "longitud", x)
+    print("  (3 pasos de arrastre en {:.2f} s)".format(time.time() - inicio))
+    inicio = time.time()
+    e.terminar_cambio()
+    print("  (soltar y reconstruir denso en {:.2f} s)".format(time.time() - inicio))
+    comprobar(cm.arbol_de(e.grupo).modulos[rama].valores["longitud"] == largo0 + 50, "el cambio queda en la receta")
+    comprobar(cm.triangulos(e.grupo) == e.arbol.triangulos("denso"), "tras soltar, malla densa al día")
+    cmds.undo()
+    comprobar(e.arbol.modulos[rama].valores["longitud"] == largo0, "Ctrl+Z deshace el arrastre entero")
+    comprobar(cm.arbol_de(e.grupo).modulos[rama].valores["longitud"] == largo0, "deshacer restaura la receta")
+    comprobar(cm.triangulos(e.grupo) == tri0, "deshacer restaura las mallas")
+    cmds.redo()
+    comprobar(e.arbol.modulos[rama].valores["longitud"] == largo0 + 50, "rehacer vuelve a aplicarlo")
+    comprobar(avisos, "la ventana se entera de los cambios")
+    cmds.undo()
+
+    # edición en grupo, relativa
+    e.empezar_cambio([rama, otra])
+    e.cambiar_valor([rama, otra], "longitud", largo0 + 40, rama)
+    e.terminar_cambio()
+    comprobar(abs(e.arbol.modulos[otra].valores["longitud"] - (largo_otra + 40)) < 1e-6,
+              "editar varias ramas suma el mismo cambio a cada una")
+    cmds.undo()
+
+    # añadir, repetir, quitar, plantillas
+    n = len(e.arbol.modulos)
+    nueva = e.anadir_rama(rama)
+    comprobar(nueva in e.arbol.modulos and len(cm.mallas(e.grupo)) == n + 1, "añadir rama")
+    cmds.undo()
+    comprobar(len(cm.mallas(e.grupo)) == n and nueva not in e.arbol.modulos, "deshacer añadir rama")
+    copias = e.repetir(rama, 3)
+    comprobar(len(copias) == 3 and len(e.arbol.modulos) == n + 3 * (1 + len(e.arbol.descendientes(rama))),
+              "repetir alrededor con descendientes")
+    cmds.undo()
+    e.quitar([e.arbol.tronco.id])
+    comprobar(e.arbol.tronco is not None, "el tronco no se puede quitar")
+    e.quitar([rama])
+    comprobar(rama not in e.arbol.modulos, "quitar rama")
+    cmds.undo()
+    comprobar(rama in e.arbol.modulos and len(cm.mallas(e.grupo)) == n, "deshacer quitar rama")
+    e.pegar({"longitud": 77.0, "posicion": 0.01}, [otra])
+    comprobar(e.arbol.modulos[otra].valores["longitud"] == 77.0, "pegar ajustes")
+    cmds.undo()
+    e.nueva("lloron")
+    comprobar(len(e.arbol.modulos) == len(ejemplos.PLANTILLAS["lloron"]().modulos), "empezar desde plantilla")
+    cmds.undo()
+    comprobar(len(e.arbol.modulos) == n, "deshacer plantilla")
+
+    # tiradores de la curva
+    e.mostrar_tiradores(rama)
+    tiradores = cmds.listRelatives(ed.TIRADORES, children=True) or []
+    comprobar(len(tiradores) == 3, "3 tiradores en la rama")
+    punta = e.arbol.modulos[rama].guia.punto(1.0)
+    cmds.move(0, 40, 0, ed.TIRADORES + "|" + tiradores[2], relative=True)
+    e._tirador_movido()  # en Maya con interfaz lo llama el scriptJob
+    comprobar(abs(e.arbol.modulos[rama].guia.punto(1.0)[1] - punta[1] - 40) < 0.5, "mover un tirador curva la rama")
+    comprobar(cm.arbol_de(e.grupo).modulos[rama].curva, "la curva a mano queda en la receta")
+    e.enderezar([rama])
+    comprobar(not e.arbol.modulos[rama].curva, "enderezar")
+    e.quitar_tiradores()
+    comprobar(not cmds.objExists(ed.TIRADORES), "quitar tiradores")
+
+    # clic en el visor (rayo)
+    tronco = e.arbol.tronco.id
+    id_, punto = e.modulo_bajo_rayo((0.0, 120.0, 5000.0), (0.0, 0.0, -1.0))
+    comprobar(id_ == tronco, "un rayo hacia la base encuentra el tronco ({})".format(id_))
+    if id_:
+        sitio = e.rama_en_punto(id_, punto)
+        comprobar(abs(sitio["giro"] - 0) >= 0 and 0 <= sitio["posicion"] <= 0.4, "posición de la rama en el clic ({:.2f})".format(sitio["posicion"]))
+        nueva = e.anadir_rama(id_, **sitio)
+        e.arbol.calcular()
+        base = e.arbol.modulos[nueva].guia.punto(0.0)
+        comprobar(v_dist(base, punto) < e.arbol.modulos[tronco].valores["grosor"] * 1.5,
+                  "la rama nace donde se hizo clic ({:.1f} cm)".format(v_dist(base, punto)))
+        cmds.undo()
+
+    # selección
+    e.seleccionar([rama, otra])
+    comprobar(sorted(e.ids_seleccionados_en_visor()) == sorted([rama, otra]), "selección entre lista y visor")
+
+    # figura humana
+    e.figura_humana(True)
+    comprobar(cmds.objExists(ed.FIGURA), "figura humana")
+    caja = cmds.exactWorldBoundingBox(ed.FIGURA)
+    comprobar(abs(caja[4] - caja[1] - 174) < 2, "la figura mide 1,75 m ({:.0f} cm)".format(caja[4] - caja[1]))
+    e.figura_humana(False)
+    comprobar(not cmds.getAttr(ed.FIGURA + ".visibility"), "ocultar figura")
+
+    # Generar
+    for nivel in mod.NIVELES_GENERAR:
+        inicio = time.time()
+        g = e.generar(nivel)
+        segundos = time.time() - inicio
+        comprobar(g and cm.es_arbol(g) and cm.triangulos(g) == e.arbol.triangulos(nivel),
+                  "Generar {}: {} triángulos en {:.2f} s".format(nivel, cm.triangulos(g) if g else "-", segundos))
+    cmds.undo()
+    comprobar(not cm.existe(g), "deshacer Generar")
+    prototipos = len(cmds.listRelatives(cm.PROTOTIPOS, children=True))
+    cmds.delete(g if cm.existe(g) else [])
+    comprobar(prototipos == 6, "los prototipos siguen al borrar árboles")
+
+    # biblioteca
+    bib = Biblioteca(os.path.join(tmp, "Documents", "Arboles"))
+    e.renombrar("Arce del patio")
+    comprobar(e.arbol.nombre == "Arce del patio", "renombrar")
+    bib.guardar(e.arbol)
+    bib.guardar_rama("rama buena", e.arbol.subarbol(rama))
+    e.nueva("vacio")
+    e.cargar(bib.cargar("Arce del patio"))
+    comprobar(e.arbol.nombre == "Arce del patio" and len(e.arbol.modulos) == n, "abrir de la biblioteca")
+    nueva = e.injertar(bib.cargar_rama("rama_buena"), e.arbol.tronco.id)
+    comprobar(nueva in e.arbol.modulos, "insertar rama favorita")
+
+    # cerrar y volver a abrir el editor recupera el árbol
+    e.cerrar()
+    otra_vez = ed.Editor().abrir("vacio")
+    comprobar(len(otra_vez.arbol.modulos) == len(e.arbol.modulos), "reabrir el editor recupera el árbol")
+
+    ventana(cmds, tmp, otra_vez)
+
+
+def v_dist(a, b):
+    return sum((x - y) ** 2 for x, y in zip(a, b)) ** 0.5
+
+
+def ventana(cmds, tmp, editor):
+    """Crea la ventana Qt fuera de pantalla y guarda una captura (si hay Qt)."""
+    try:
+        try:
+            from PySide6 import QtWidgets
+        except ImportError:
+            from PySide2 import QtWidgets
+        app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+        from arboles import editor_ui
+        w = editor_ui.VentanaEditor(padre=QtWidgets.QWidget())
+        w.show()
+        app.processEvents()
+        fila = w._filas.get("altura")
+        comprobar(fila is not None, "la ventana muestra los deslizadores del tronco")
+        w._seleccionar_ids([i for i in w.editor.arbol.modulos if i != w.editor.arbol.tronco.id][:2])
+        app.processEvents()
+        comprobar("follaje" in w._filas, "con ramas seleccionadas aparece el bloque Follaje")
+        destino = os.environ.get("ARBOLES_CAPTURA") or os.path.join(tmp, "editor.png")
+        w.grab().save(destino)
+        print("  captura de la ventana: " + destino)
+        w.close()
+    except Exception:
+        traceback.print_exc()
+        comprobar(False, "la ventana del editor se crea")
 
 
 if __name__ == "__main__":

@@ -120,6 +120,7 @@ def _crear_materiales():
 
 def _arbol_ejemplo():
     from arboles import construir_maya, ejemplos
+    construir_maya.preparar()
     grupo = construir_maya.crear(ejemplos.copa_redonda())
     cmds.select(grupo)
     print(t("ejemplo_creado", grupo=grupo, triangulos=construir_maya.triangulos(grupo)))
@@ -147,6 +148,12 @@ def _cuadros(activo):
         print(t("cuadros_activos"))
 
 
+def _editor():
+    from arboles import editor_ui
+    carpeta_biblioteca()  # la primera vez pregunta dónde guardar
+    return editor_ui.mostrar()
+
+
 def _acerca():
     cmds.confirmDialog(title=t("menu_acerca"), message=t("acerca_texto", version=arboles.__version__),
                        button=[t("boton_aceptar")])
@@ -155,7 +162,7 @@ def _acerca():
 def crear_menu():
     quitar_menu()
     cmds.menu(MENU, parent="MayaWindow", label=t("menu_titulo"), tearOff=True)
-    cmds.menuItem(label=t("menu_editor"), command=lambda *_: _proximamente("funcion_editor"))
+    cmds.menuItem(label=t("menu_editor"), command=lambda *_: _editor())
     cmds.menuItem(label=t("menu_biblioteca"), command=lambda *_: _proximamente("funcion_biblioteca"))
     cmds.menuItem(label=t("menu_modulos"), subMenu=True, tearOff=True)
     cmds.menuItem(label=t("menu_ejemplo"), command=lambda *_: _arbol_ejemplo())

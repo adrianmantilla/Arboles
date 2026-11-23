@@ -44,15 +44,30 @@ PARAMETROS = {
         "torsion": (0.0, -360.0, 360.0, True),
         "irregularidad": (0.15, 0.0, 1.0, True),
         "nudos": (1, 0, 10, True),
+        # Follaje (sección propia en el editor)
+        "follaje": ("hoja_ancha", None, None, False),
+        "densidad": (0.6, 0.0, 1.0, False),
+        "tamano_hoja": (1.0, 0.3, 3.0, False),
+        "zona": (0.6, 0.05, 1.0, True),               # parte de la rama con hojas, desde la punta
+        "hacia_arriba": (0.4, 0.0, 1.0, True),        # cuánto miran las hojas hacia el cielo
     },
 }
 
-# nivel: (lados, largo de cada segmento en radios de la base)
+# Parámetros con una lista cerrada de valores
+OPCIONES = {"follaje": ("ninguno", "hoja_ancha", "hoja_fina", "aguja")}
+PARAMETROS_FOLLAJE = ("follaje", "densidad", "tamano_hoja", "zona", "hacia_arriba")
+# Al copiar ajustes no se copia dónde nace la rama
+PARAMETROS_DE_SITIO = ("posicion", "giro")
+
+# Puntos de la curva guía que se pueden mover a mano (fracción del largo)
+CONTROLES = (1.0 / 3.0, 2.0 / 3.0, 1.0)
+
+# nivel: (lados, largo de cada segmento en radios de la base, largo mínimo en cm)
 NIVELES = {
-    "denso": (24, 0.5),
-    "alto": (12, 1.2),
-    "medio": (8, 2.0),
-    "bajo": (6, 3.0),
+    "denso": (24, 0.5, 2.0),
+    "alto": (12, 1.2, 8.0),
+    "medio": (8, 2.0, 15.0),
+    "bajo": (6, 3.0, 25.0),
 }
 NIVELES_GENERAR = ("alto", "medio", "bajo")
 SEGMENTOS_MIN, SEGMENTOS_MAX = 3, 160
@@ -67,6 +82,10 @@ def valores_por_defecto(tipo):
 
 
 def limitar(tipo, nombre, valor):
+    if nombre in OPCIONES:
+        if valor not in OPCIONES[nombre]:
+            raise ValueError("{} no admite {!r}".format(nombre, valor))
+        return valor
     defecto, minimo, maximo, _ = PARAMETROS[tipo][nombre]
     valor = max(minimo, min(maximo, valor))
     return int(round(valor)) if isinstance(defecto, int) else float(valor)
@@ -86,6 +105,7 @@ class Modulo(object):
         self.valores = valores_por_defecto(tipo)
         for nombre, valor in (valores or {}).items():
             self.fijar(nombre, valor)
+        self.curva = {}   # índice de CONTROLES -> desplazamiento (x, y, z) movido a mano
         self.guia = None  # Guia calculada
 
     def fijar(self, nombre, valor):
@@ -97,12 +117,38 @@ class Modulo(object):
     def semilla(self):
         return zlib.crc32(self.id.encode("utf-8")) & 0xFFFFFFFF
 
+    def fijar_control(self, indice, desplazamiento):
+        if not 0 <= indice < len(CONTROLES):
+            raise IndexError(indice)
+        if desplazamiento is None or v.largo(desplazamiento) < 1e-6:
+            self.curva.pop(indice, None)
+        else:
+            self.curva[indice] = v.vec(desplazamiento)
+
+    def desplazamiento(self, s):
+        """Desplazamiento a mano de la curva en ``s``: suave y nulo en la base."""
+        if not self.curva:
+            return v.CERO
+        puntos = [(0.0, v.CERO)] + [(c, self.curva.get(i, v.CERO)) for i, c in enumerate(CONTROLES)]
+        for (s0, d0), (s1, d1) in zip(puntos, puntos[1:]):
+            if s <= s1:
+                f = (s - s0) / (s1 - s0)
+                f = f * f * (3.0 - 2.0 * f)
+                return v.suma(v.escala(d0, 1.0 - f), v.escala(d1, f))
+        return puntos[-1][1]
+
     def a_dict(self):
-        return {"id": self.id, "tipo": self.tipo, "padre": self.padre, "valores": dict(self.valores)}
+        datos = {"id": self.id, "tipo": self.tipo, "padre": self.padre, "valores": dict(self.valores)}
+        if self.curva:
+            datos["curva"] = {str(i): list(d) for i, d in sorted(self.curva.items())}
+        return datos
 
     @classmethod
     def de_dict(cls, datos):
-        return cls(datos["id"], datos["tipo"], datos.get("padre"), datos.get("valores"))
+        m = cls(datos["id"], datos["tipo"], datos.get("padre"), datos.get("valores"))
+        for i, d in (datos.get("curva") or {}).items():
+            m.fijar_control(int(i), d)
+        return m
 
 
 # --- Curva guía ---------------------------------------------------------------
@@ -114,7 +160,11 @@ class Guia(object):
     _MUESTRAS_GUIA + 1 elementos repartidos por igual a lo largo del tubo.
     """
 
-    def __init__(self, puntos, normal_inicial, radio_base, radio_fn):
+    def __init__(self, puntos, normal_inicial, radio_base, radio_fn, desplazamiento=None):
+        self.base = puntos  # sin los retoques a mano
+        if desplazamiento:
+            n = float(len(puntos) - 1)
+            puntos = [v.suma(p, desplazamiento(i / n)) for i, p in enumerate(puntos)]
         self.puntos = puntos
         self.largo = sum(v.distancia(a, b) for a, b in zip(puntos, puntos[1:]))
         self.radio_base = radio_base
@@ -149,6 +199,15 @@ class Guia(object):
     def punto(self, s):
         i, f = self._indice(s)
         return self._mezcla(self.puntos[i], self.puntos[i + 1], f)
+
+    def punto_base(self, s):
+        i, f = self._indice(s)
+        return self._mezcla(self.base[i], self.base[i + 1], f)
+
+    def mas_cercano(self, p):
+        """s del punto de la curva más cercano a ``p``."""
+        mejor = min(range(len(self.puntos)), key=lambda i: v.distancia(self.puntos[i], p))
+        return mejor / float(len(self.puntos) - 1)
 
     def marco(self, s):
         """(tangente, normal, binormal) ortonormales en ``s``."""
@@ -221,7 +280,7 @@ def guia_tronco(modulo, origen=v.CERO):
         puntos.append(v.suma(puntos[-1], v.escala(direccion, paso)))
         direccion = v.rotar(direccion, eje_curva, giro_paso)
     radio = _forma(modulo, val["grosor"], largo)
-    return Guia(puntos, _ATRAS, val["grosor"], radio)
+    return Guia(puntos, _ATRAS, val["grosor"], radio, modulo.desplazamiento if modulo.curva else None)
 
 
 def guia_rama(modulo, madre):
@@ -251,7 +310,8 @@ def guia_rama(modulo, madre):
             direccion = v.rotar(direccion, eje, -min(caida, hacia_abajo * 0.5))
         direccion = v.unitario(direccion) or direccion
     # La costura de las ramas va por debajo, donde menos se ve.
-    return Guia(puntos, v.ABAJO, radio_base, _forma(modulo, radio_base, largo))
+    return Guia(puntos, v.ABAJO, radio_base, _forma(modulo, radio_base, largo),
+                modulo.desplazamiento if modulo.curva else None)
 
 
 # --- Malla --------------------------------------------------------------------
@@ -277,8 +337,8 @@ class Malla(object):
 
 
 def segmentos(guia, nivel):
-    _, largo_segmento = NIVELES[nivel]
-    n = int(math.ceil(guia.largo / max(guia.radio_base * largo_segmento, 1e-3)))
+    _, largo_segmento, minimo = NIVELES[nivel]
+    n = int(math.ceil(guia.largo / max(guia.radio_base * largo_segmento, minimo)))
     return max(SEGMENTOS_MIN, min(SEGMENTOS_MAX, n))
 
 
@@ -294,7 +354,7 @@ def uv(s, theta, guia, escala_textura):
 
 
 def malla_tubo(guia, nivel, nombre, torsion=0.0, escala_textura=60.0, cerrar_punta=True):
-    lados, _ = NIVELES[nivel]
+    lados = NIVELES[nivel][0]
     n_seg = segmentos(guia, nivel)
     torsion = math.radians(torsion)
     m = Malla(nombre)

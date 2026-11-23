@@ -4,11 +4,18 @@ La receta guarda solo parámetros, nunca mallas: con ella el árbol se vuelve a
 construir a cualquier resolución, en cualquier escena.
 """
 
+import copy
 import json
 
+from arboles import follaje
 from arboles import modulos as mod
 
 VERSION_RECETA = 1
+_DORADO = 137.5
+
+# Semáforo de polígonos: triángulos de un árbol generado (calidad media) para
+# que un jardín de 50 árboles se pueda renderizar en un ordenador del aula.
+SEMAFORO = ((25000, "verde"), (50000, "amarillo"))
 
 
 class Arbol(object):
@@ -49,6 +56,61 @@ class Arbol(object):
     def hijos(self, id_):
         return [m for m in self.modulos.values() if m.padre == id_]
 
+    def descendientes(self, id_):
+        resultado = []
+        for hijo in self.hijos(id_):
+            resultado.append(hijo.id)
+            resultado += self.descendientes(hijo.id)
+        return resultado
+
+    def subarbol(self, id_):
+        """Diccionario con la rama ``id_`` y todo lo que cuelga de ella."""
+        return {"raiz": id_, "modulos": [self.modulos[i].a_dict() for i in [id_] + self.descendientes(id_)]}
+
+    def injertar(self, subarbol, padre, **cambios):
+        """Copia un subárbol bajo ``padre`` con ids nuevos; ``cambios`` van a la raíz."""
+        padre = getattr(padre, "id", padre)
+        nuevos = {}
+        raiz = None
+        for datos in subarbol["modulos"]:
+            datos = copy.deepcopy(datos)
+            nueva_madre = padre if datos["id"] == subarbol["raiz"] else nuevos[datos["padre"]]
+            m = self.anadir_rama(nueva_madre, **datos["valores"])
+            for i, d in (datos.get("curva") or {}).items():
+                m.fijar_control(int(i), d)
+            nuevos[datos["id"]] = m.id
+            if datos["id"] == subarbol["raiz"]:
+                raiz = m
+        for nombre, valor in cambios.items():
+            raiz.fijar(nombre, valor)
+        return raiz
+
+    def repetir_alrededor(self, id_, copias):
+        """Reparte ``copias`` más de la rama alrededor de su madre, con el ángulo dorado."""
+        original = self.modulos[id_]
+        if original.tipo != mod.RAMA:
+            raise ValueError("solo se pueden repetir ramas")
+        sub = self.subarbol(id_)
+        nuevas = []
+        for k in range(1, copias + 1):
+            posicion = original.valores["posicion"] + (0.06 * ((k + 1) // 2)) * (1 if k % 2 else -1)
+            nuevas.append(self.injertar(
+                sub, original.padre,
+                giro=(original.valores["giro"] + k * _DORADO) % 360.0,
+                posicion=min(1.0, max(0.0, posicion))))
+        return nuevas
+
+    def pegar_ajustes(self, valores, destinos):
+        """Copia ``valores`` en los módulos del mismo tipo, salvo dónde nacen."""
+        cambiados = []
+        for id_ in destinos:
+            m = self.modulos[id_]
+            for nombre, valor in valores.items():
+                if nombre in mod.PARAMETROS[m.tipo] and nombre not in mod.PARAMETROS_DE_SITIO:
+                    m.fijar(nombre, valor)
+            cambiados.append(id_)
+        return cambiados
+
     def quitar(self, id_):
         """Quita el módulo y todo lo que cuelga de él."""
         for hijo in self.hijos(id_):
@@ -86,8 +148,33 @@ class Arbol(object):
         return [mod.malla_tubo(m.guia, nivel, m.id, m.valores["torsion"], self.escala_textura)
                 for m in self._orden()]
 
-    def triangulos(self, nivel):
-        return sum(malla.triangulos for malla in self.mallas(nivel))
+    def follaje(self):
+        """{id de rama: (tipo, [matrices])} con la guía ya calculada."""
+        self.calcular()
+        resultado = {}
+        for m in self.modulos.values():
+            if m.tipo == mod.RAMA:
+                matrices = follaje.colocar(m)
+                if matrices:
+                    resultado[m.id] = (m.valores["follaje"], matrices)
+        return resultado
+
+    def triangulos(self, nivel, con_follaje=True):
+        total = sum(malla.triangulos for malla in self.mallas(nivel))
+        if con_follaje:
+            for tipo, matrices in self.follaje().values():
+                total += len(matrices) * follaje.triangulos_prototipo(tipo, nivel)
+        return total
+
+    def semaforo(self, nivel="medio"):
+        triangulos = self.triangulos(nivel)
+        for limite, color in SEMAFORO:
+            if triangulos <= limite:
+                return color, triangulos
+        return "rojo", triangulos
+
+    def copiar(self):
+        return Arbol.de_dict(self.a_dict())
 
     # --- receta ---
 
