@@ -72,9 +72,33 @@ def leer_texto(nombre_nodo, atributo):
     return fn.findPlug(atributo, False).asString()
 
 
+def _soltar_instancias(obj):
+    """Quita de ``obj`` y su descendencia las formas instanciadas (las hojas).
+
+    Borrar un transform con MDagModifier borra también sus formas, aunque
+    estén instanciadas en otros sitios: sin esto se perdería el prototipo y
+    Maya acabaría con nodos inválidos (cuelgues y cierres).
+    """
+    pares = []
+    pila = [obj]
+    while pila:
+        actual = pila.pop()
+        fn = om.MFnDagNode(actual)
+        for i in range(fn.childCount()):
+            hijo = fn.child(i)
+            if hijo.hasFn(om.MFn.kShape) and om.MFnDagNode(hijo).parentCount() > 1:
+                pares.append((actual, hijo))
+            elif hijo.hasFn(om.MFn.kTransform):
+                pila.append(hijo)
+    for padre, hijo in pares:
+        om.MFnDagNode(padre).removeChild(hijo)
+
+
 def _borrar(objetos):
     if not objetos:
         return
+    for obj in objetos:
+        _soltar_instancias(obj)
     mod = om.MDagModifier()
     for obj in objetos:
         mod.deleteNode(obj)
