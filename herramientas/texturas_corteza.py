@@ -54,7 +54,7 @@ TAMANOS = {"512": 512, "1k": 1024, "2k": 2048, "4k": 4096}
 #   contraste: del color respecto a su media (menos de 1 = más uniforme);
 #   repetir: n x n copias en la imagen (dibujo más menudo);
 #   tinte: color medio (sRGB, 0-1) al que se lleva el color; saturacion: menos de 1 = más gris;
-#   lenticelas: trazos oscuros horizontales (abedul).
+#   lenticelas: trazos oscuros horizontales (abedul); manchas: placas claras y verdosas (plátano).
 CORTEZAS = {
     "roble": dict(fuente="wood_bark", preset=None, valores={
         "$randomseed": 7, "bark_color": (0.33, 0.30, 0.26), "bark_roughness": 0.9, "bark_density": 0.8,
@@ -81,7 +81,18 @@ CORTEZAS = {
     "arbusto": dict(fuente="wood_bark", preset="Small Wood Bark", valores={
         "$randomseed": 23, "bark_color": (0.34, 0.29, 0.24), "bark_roughness": 0.4, "bark_density": 0.4,
         "missing_part_density": 0.1}, repetir=2),
+    "encina": dict(fuente="wood_bark", preset="Small Wood Bark", valores={
+        "$randomseed": 29, "bark_color": (0.28, 0.26, 0.24), "normal_intensity": 1.2}),
+    "platano": dict(fuente="wood_bark", preset="Small Wood Bark", valores={
+        "$randomseed": 31, "bark_color": (0.55, 0.53, 0.45)}, relieve=0.25, contraste=0.4, manchas=True),
+    "chopo": dict(fuente="wood_bark", preset="Small Wood Bark", valores={
+        "$randomseed": 37, "bark_color": (0.60, 0.60, 0.54)}, relieve=0.35, contraste=0.5),
+    "castano": dict(fuente="wood_bark", preset="Long Wood Bark", valores={
+        "$randomseed": 41, "bark_color": (0.36, 0.30, 0.25), "normal_intensity": 1.2}),
+    "arce": dict(fuente="wood_bark", preset="Small Wood Bark", valores={
+        "$randomseed": 43, "bark_color": (0.42, 0.38, 0.33)}, relieve=0.6),
 }
+CORTEZAS["arce_otono"] = CORTEZAS["arce"]
 
 # Para --catalogo: (fuente, preset) con sus valores por defecto, para elegir el dibujo de cada especie
 VARIANTES = [(f, p) for f, ps in (
@@ -200,6 +211,30 @@ def _lenticelas(color, normal, rugosidad, semilla):
     normal[:, :, 1] = np.clip(normal[:, :, 1] + gy * 40.0, 0, 255)
 
 
+def _manchas(color, normal, semilla):
+    """Placas del plátano de sombra: manchas grandes crema, oliva y gris, más lisas (repetibles)."""
+    import numpy as np
+    azar = np.random.default_rng(semilla)
+    alto, ancho = color.shape[:2]
+    resultado = color.copy()
+    tonos = (np.array((205.0, 196.0, 160.0)), np.array((150.0, 152.0, 110.0)), np.array((120.0, 115.0, 100.0)))
+    filas = np.arange(alto)[:, None]
+    columnas = np.arange(ancho)[None, :]
+    for tono in tonos:
+        # Suma de manchas gaussianas repetibles (distancias que dan la vuelta) y un umbral: placas irregulares
+        campo = np.zeros((alto, ancho))
+        for _ in range(26):
+            cy, cx = azar.uniform(0, alto), azar.uniform(0, ancho)
+            ry, rx = alto * azar.uniform(0.03, 0.09), ancho * azar.uniform(0.03, 0.09)
+            dy = (filas - cy + alto / 2.0) % alto - alto / 2.0
+            dx = (columnas - cx + ancho / 2.0) % ancho - ancho / 2.0
+            campo += np.exp(-(dx / rx) ** 2 - (dy / ry) ** 2)
+        mascara = np.clip((campo - 0.55) * 6.0, 0, 1)[..., None]
+        resultado = resultado * (1 - mascara) + tono * mascara
+        normal[:] = normal * (1 - mascara * 0.8) + np.array((127.5, 127.5, 255.0)) * mascara * 0.8
+    color[:] = resultado
+
+
 def retocar(mapas, ajustes, semilla=0):
     """Aplica relieve, contraste, repetición y lenticelas a {canal: matriz numpy}."""
     import numpy as np
@@ -225,6 +260,8 @@ def retocar(mapas, ajustes, semilla=0):
         normal = (n + 1.0) * 127.5
     if ajustes.get("lenticelas"):
         _lenticelas(color, normal, rugosidad, semilla)
+    if ajustes.get("manchas"):
+        _manchas(color, normal, semilla)
     repetir = ajustes.get("repetir", 1)
     resultado = {"color": color, "normal": normal, "rugosidad": rugosidad}
     for canal, m in resultado.items():
