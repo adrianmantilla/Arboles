@@ -68,6 +68,24 @@ class PruebaTexturas(unittest.TestCase):
         self.assertIsNone(tx.ruta("olivo", "corteza", "color", "1k", self.carpeta))
 
 
+class PruebaTexturasDeSerie(unittest.TestCase):
+    def test_cada_especie_trae_sus_hojas(self):
+        for especie in especies.ESPECIES:
+            canales = tx.canales(especie, "hoja", "1k")
+            self.assertEqual(sorted(canales), sorted(tx.CANALES), especie)
+            # 2K y 4K no hacen falta en las hojas: se usa la más cercana.
+            self.assertEqual(tx.ruta(especie, "hoja", "color", "4k"), canales["color"])
+
+    def test_nombres_de_archivo_conocidos(self):
+        for juego in tx.juegos():
+            for res in os.listdir(os.path.join(tx.carpeta_texturas(), juego)):
+                self.assertIn(res, tx.RESOLUCIONES, (juego, res))
+                for nombre in os.listdir(os.path.join(tx.carpeta_texturas(), juego, res)):
+                    parte, _, resto = nombre.partition("_")
+                    self.assertIn(parte, tx.PARTES, (juego, res, nombre))
+                    self.assertIn(os.path.splitext(resto)[0], tx.CANALES, (juego, res, nombre))
+
+
 class PruebaMaterialDelArbol(unittest.TestCase):
     def test_por_defecto_clay(self):
         self.assertEqual(Arbol("x").material, tx.CLAY)

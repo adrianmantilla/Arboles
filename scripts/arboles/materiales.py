@@ -85,11 +85,13 @@ def crear_material_texturas(juego, parte, resolucion=tx.RESOLUCION_POR_DEFECTO):
     clay = CLAY["arboles_clay_" + parte]
     material = cmds.shadingNode("standardSurface", asShader=True, name=nombre)
     cmds.setAttr(material + ".base", 1.0)
+    cmds.setAttr(material + ".baseColor", *clay[0], type="double3")  # si falta la imagen de color
     cmds.setAttr(material + ".specular", clay[2])
     cmds.setAttr(material + ".specularRoughness", clay[1])
     if parte == "hoja":
         cmds.setAttr(material + ".thinWalled", 1)
         cmds.setAttr(material + ".subsurface", 0.25)
+        cmds.setAttr(material + ".subsurfaceColor", *clay[0], type="double3")
     canales = tx.canales(juego, parte, resolucion)
     if "color" in canales:
         n = _archivo(nombre + "_color", canales["color"], True)
