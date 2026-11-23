@@ -77,7 +77,15 @@ def _capturar_y_salir():
         QtWidgets.QApplication.processEvents()
         p.grab().save(os.path.join(_SALIDA, "plantar.png"))
         cmds.select(clear=True)
-        cmds.viewFit("persp", plantar.plantados() + [suelo], fitFactor=0.9)
+        # encuadre explícito: viewFit no funciona bien con copias instanciadas
+        x0, y0, z0, x1, y1, z1 = cmds.exactWorldBoundingBox(*plantar.plantados())
+        cx, cz, alto = (x0 + x1) / 2.0, (z0 + z1) / 2.0, y1 - y0
+        lado = max(x1 - x0, z1 - z0, alto)
+        cmds.viewPlace("persp", eye=(cx, alto * 1.1, z1 + lado * 1.4), lookAt=(cx, alto * 0.4, cz),
+                       perspective=True)
+        panel = cmds.getPanel(withFocus=True)
+        if cmds.getPanel(typeOf=panel) == "modelPanel":
+            cmds.modelPanel(panel, edit=True, camera="persp")
         cmds.refresh(force=True)
         cmds.playblast(frame=[1], format="image", compression="png", viewer=False,
                        completeFilename=os.path.join(_SALIDA, "jardin.png"), widthHeight=(1200, 800),
