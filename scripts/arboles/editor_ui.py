@@ -50,6 +50,21 @@ def nombre_modulo(id_):
     return t("lista_tronco") if id_.startswith(mod.TRONCO) else t("lista_rama", n=numero)
 
 
+
+def opciones_material():
+    """«clay», las especies de serie y cualquier otro juego de texturas instalado."""
+    from arboles import especies, texturas
+    return [texturas.CLAY] + list(especies.ESPECIES) + [j for j in texturas.juegos() if j not in especies.ESPECIES]
+
+
+def texto_material(clave):
+    from arboles import texturas
+    if clave == texturas.CLAY:
+        return t("material_clay")
+    nombre = t("plantilla_" + clave)
+    nombre = clave if nombre == "plantilla_" + clave else nombre
+    return nombre if texturas.existe(clave) else t("material_sin_texturas", nombre=nombre)
+
 class FilaParametro(QtWidgets.QWidget):
     """Etiqueta + deslizador + casilla numérica (o lista para opciones)."""
 
@@ -213,6 +228,13 @@ class VentanaEditor(QtWidgets.QDialog):
         self.nombre = QtWidgets.QLineEdit()
         self.nombre.editingFinished.connect(self._renombrar)
         arriba.addWidget(self.nombre, 1)
+        arriba.addWidget(QtWidgets.QLabel(t("material")))
+        self.material = QtWidgets.QComboBox()
+        self.material.setToolTip(t("ayuda_material"))
+        for clave in opciones_material():
+            self.material.addItem(texto_material(clave), clave)
+        self.material.activated.connect(self._cambiar_material)
+        arriba.addWidget(self.material)
         arriba.addWidget(self._boton("boton_abrir", self._abrir))
         arriba.addWidget(self._boton("boton_guardar", self._guardar))
         capa.addLayout(arriba)
@@ -299,6 +321,9 @@ class VentanaEditor(QtWidgets.QDialog):
         """El árbol ha cambiado (acción, deshacer o rehacer): lista, valores e informe."""
         arbol = self.editor.arbol
         self.nombre.setText(arbol.nombre)
+        if self.material.findData(arbol.material) < 0:
+            self.material.addItem(texto_material(arbol.material), arbol.material)
+        self.material.setCurrentIndex(self.material.findData(arbol.material))
         ids = [i for i in self._ids if i in arbol.modulos] or [arbol.tronco.id]
         self._sincronizando = True
         try:
@@ -444,6 +469,11 @@ class VentanaEditor(QtWidgets.QDialog):
         nombre = self.nombre.text().strip()
         if nombre and nombre != self.editor.arbol.nombre:
             self.editor.renombrar(nombre)
+
+    def _cambiar_material(self, *_):
+        material = self.material.currentData()
+        if material and material != self.editor.arbol.material:
+            self.editor.cambiar_material(material)
 
     def _anadir(self):
         nuevo = self.editor.anadir_rama(self._ids[0])

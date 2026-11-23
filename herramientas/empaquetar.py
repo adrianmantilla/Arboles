@@ -3,7 +3,7 @@
     python3 herramientas/empaquetar.py [carpeta de salida]
 
 Deja Arboles-<versión>.zip con una carpeta «Arboles» dentro (instalar.py, plug-ins,
-scripts, README.md y GUIA_ALUMNOS.md). Sin pruebas, herramientas ni cachés.
+scripts, texturas, README.md y GUIA_ALUMNOS.md). Sin pruebas, herramientas ni cachés.
 """
 
 import os
@@ -12,7 +12,7 @@ import sys
 import zipfile
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-INCLUIR = ("instalar.py", "README.md", "GUIA_ALUMNOS.md", "plug-ins", "scripts")
+INCLUIR = ("instalar.py", "README.md", "GUIA_ALUMNOS.md", "plug-ins", "scripts", "texturas")
 
 
 def version():

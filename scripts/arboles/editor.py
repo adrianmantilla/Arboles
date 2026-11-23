@@ -71,12 +71,13 @@ class Editor(object):
 
     def abrir(self, plantilla="roble"):
         """Recupera el árbol del grupo del editor o crea uno desde ``plantilla``."""
-        cm.preparar()
         if cm.es_arbol(GRUPO):
             self.grupo = cmds.ls(GRUPO, long=True)[0]
             self.arbol = cm.arbol_de(self.grupo)
+            _sin_deshacer(cm.preparar, self.arbol)
         else:
             self.arbol = ejemplos.crear(plantilla)
+            _sin_deshacer(cm.preparar, self.arbol)
             self.grupo = _sin_deshacer(cm.crear, self.arbol, NIVEL_EDICION, GRUPO)
         self._luz_dos_caras()
         self._avisar()
@@ -105,6 +106,9 @@ class Editor(object):
         if antes == despues:
             return
         ids = cambiados(antes, despues)
+        if antes.get("material") != despues.get("material"):
+            ids = None  # cambia el material de todas las mallas
+            _sin_deshacer(cm.preparar, Arbol.de_dict(despues))
         acciones.ejecutar(lambda: self._aplicar(despues, ids), lambda: self._aplicar(antes, ids), nombre)
 
     def _cambiar(self, funcion, nombre="Arboles"):
@@ -126,6 +130,10 @@ class Editor(object):
 
     def renombrar(self, nombre):
         self._cambiar(lambda a: setattr(a, "nombre", nombre), "Arboles_nombre")
+
+    def cambiar_material(self, material):
+        """Juego de texturas del árbol («clay» o una especie). Un paso de deshacer."""
+        self._cambiar(lambda a: setattr(a, "material", material), "Arboles_material")
 
     # --- deslizadores (vista previa en vivo + un paso de deshacer al soltar) ------
 
@@ -366,7 +374,7 @@ class Editor(object):
 
     def generar(self, nivel):
         """Crea al lado una copia terminada del árbol en la calidad ``nivel`` (un paso de deshacer)."""
-        cm.preparar()
+        _sin_deshacer(cm.preparar, self.arbol)
         copia = self.arbol.copiar()
         copia.calcular()
         radio = max(abs(p[0]) for m in copia.modulos.values() for p in m.guia.puntos) + 100

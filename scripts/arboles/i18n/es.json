@@ -199,5 +199,15 @@
   "opcion_escama": "Escamas",
   "boton_ejemplos": "Ejemplos",
   "ayuda_boton_ejemplos": "Añade a tu biblioteca los árboles de serie (roble, haya, pino piñonero, abeto, abedul, sauce llorón, ciprés, olivo y arbusto) para plantarlos o usarlos de punto de partida. No toca los que ya tengas.",
-  "ejemplos_anadidos": "Ejemplos añadidos a la biblioteca: {n}."
+  "ejemplos_anadidos": "Ejemplos añadidos a la biblioteca: {n}.",
+  "material": "Material:",
+  "ayuda_material": "Texturas de corteza y hojas del árbol. «Clay» es gris neutro para modelar; una especie usa sus texturas si están instaladas (si no, se ve en clay).",
+  "material_clay": "Clay (sin texturas)",
+  "material_sin_texturas": "{nombre} (aún sin texturas)",
+  "menu_resolucion": "Resolución de texturas",
+  "resolucion_512": "512 (aula, rápido)",
+  "resolucion_1k": "1K (recomendada)",
+  "resolucion_2k": "2K",
+  "resolucion_4k": "4K (render final)",
+  "resolucion_cambiada": "Texturas a {resolucion}: {texturas} imágenes cambiadas en la escena."
 }

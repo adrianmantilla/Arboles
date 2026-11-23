@@ -2,7 +2,8 @@
 
 Todo se hace con la API de Maya (sin cmds) para que se pueda llamar desde el
 deshacer del comando «arbolesAccion» del plugin. Los materiales se crean
-antes, fuera del deshacer (``preparar()``).
+antes, fuera del deshacer (``preparar(arbol)``): clay y, si el árbol tiene
+juego de texturas instalado, los de su especie.
 
 Estructura de un árbol en la escena::
 
@@ -123,11 +124,39 @@ def _crear_malla(datos, padre, nombre):
 
 # --- preparación (fuera del deshacer) -----------------------------------------
 
-def preparar():
-    """Materiales clay. Usa cmds: llamar antes de construir (fuera del deshacer)."""
+def resolucion_texturas():
+    """Resolución elegida en el menú (1K si no hay preferencias, p. ej. en batch)."""
+    from arboles import texturas
+    try:
+        from arboles import interfaz_maya
+        return interfaz_maya.cargar_ajustes().resolucion_texturas
+    except Exception:  # sin preferencias legibles: la de por defecto
+        return texturas.RESOLUCION_POR_DEFECTO
+
+
+def preparar(arbol=None):
+    """Materiales clay y, si ``arbol`` tiene juego de texturas instalado, los suyos.
+
+    Usa cmds: llamar antes de construir (fuera del deshacer).
+    """
     corteza = materiales.crear_material(CORTEZA)[1]
     hoja = materiales.crear_material(HOJA)[1]
+    if arbol is not None and materiales.tx.existe(arbol.material):
+        resolucion = resolucion_texturas()
+        corteza = materiales.crear_material_texturas(arbol.material, "corteza", resolucion)[1]
+        hoja = materiales.crear_material_texturas(arbol.material, "hoja", resolucion)[1]
     return corteza, hoja
+
+
+def _grupo_material(arbol, parte, clay):
+    """Grupo de sombreado del material de ``parte``; el clay si el de texturas no está en la escena."""
+    nombre = materiales.nombre_material(arbol.material, parte)
+    if nombre != clay and existe(nombre):
+        try:
+            return grupo_de(nombre)
+        except RuntimeError:
+            pass
+    return grupo_de(clay)
 
 
 # --- construcción ---------------------------------------------------------------
@@ -176,8 +205,8 @@ def reconstruir(grupo, arbol, nivel, ids=None, guardar_receta=True):
     Quita las mallas y el follaje de módulos que ya no existen en el árbol.
     """
     grupo_obj = _objeto(grupo)
-    sg_corteza = grupo_de(CORTEZA)
-    sg_hoja = grupo_de(HOJA)
+    sg_corteza = _grupo_material(arbol, "corteza", CORTEZA)
+    sg_hoja = _grupo_material(arbol, "hoja", HOJA)
     arbol.calcular()
     todos = set(arbol.modulos)
     rehacer = todos if ids is None else set(ids) & todos
@@ -203,7 +232,7 @@ def reconstruir(grupo, arbol, nivel, ids=None, guardar_receta=True):
 
 
 def crear(arbol, nivel="denso", nombre=None, posicion=None):
-    """Crea un grupo nuevo con el árbol y devuelve su nombre. Llamar a preparar() antes."""
+    """Crea un grupo nuevo con el árbol y devuelve su nombre. Llamar a preparar(arbol) antes."""
     obj = _transformada((nombre or arbol.nombre))
     if posicion:
         om.MFnTransform(obj).setTranslation(om.MVector(*posicion), om.MSpace.kTransform)
@@ -269,8 +298,9 @@ def generar(grupo, nivel):
     """Reconstruye el árbol del grupo al nivel indicado (fuera del editor)."""
     if nivel not in NIVELES:
         raise ValueError("nivel desconocido: {}".format(nivel))
-    preparar()
-    return reconstruir(grupo, arbol_de(grupo), nivel)
+    arbol = arbol_de(grupo)
+    preparar(arbol)
+    return reconstruir(grupo, arbol, nivel)
 
 
 def textura_cuadros(activar=True, repeticiones=8):

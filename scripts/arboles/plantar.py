@@ -68,7 +68,7 @@ def asegurar_maestro(arbol, nivel=NIVEL_POR_DEFECTO):
     estado = cmds.undoInfo(query=True, stateWithoutFlush=True)
     cmds.undoInfo(stateWithoutFlush=False)
     try:
-        cm.preparar()
+        cm.preparar(arbol)
         padre = _grupo_maestros()
         grupo = cm.crear(arbol, nivel, nombre_maestro(arbol.nombre, nivel))
         grupo = cmds.parent(grupo, padre)[0]
@@ -88,7 +88,7 @@ def actualizar_maestros(arbol):
     afectados = [(ruta, nivel) for ruta, n, nivel in maestros() if n == nombre]
     if not afectados:
         return 0
-    cm.preparar()
+    cm.preparar(arbol)
     antes = [(ruta, nivel, cm.arbol_de(ruta)) for ruta, nivel in afectados]
     despues = arbol.copiar()
 
@@ -122,6 +122,7 @@ def anadir_ejemplos(biblioteca, titulo=lambda plantilla: plantilla):
             arbol.nombre = titulo(plantilla)
             if biblioteca.existe(arbol.nombre):
                 continue
+            cm.preparar(arbol)
             biblioteca.guardar(arbol)
             grupo = cm.crear(arbol, NIVEL_POR_DEFECTO, "arboles_ejemplo_temporal")
             try:

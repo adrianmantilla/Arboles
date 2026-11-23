@@ -148,6 +148,13 @@ def _cuadros(activo):
         print(t("cuadros_activos"))
 
 
+def _resolucion(resolucion):
+    from arboles import materiales
+    cargar_ajustes().fijar_resolucion_texturas(resolucion)
+    cambiadas = materiales.cambiar_resolucion(resolucion)
+    print(t("resolucion_cambiada", resolucion=t("resolucion_" + resolucion), texturas=cambiadas))
+
+
 def _editor():
     from arboles import editor_ui
     carpeta_biblioteca()  # la primera vez pregunta dónde guardar
@@ -182,6 +189,14 @@ def crear_menu():
                   command=lambda activo, *_: _cuadros(activo))
     cmds.setParent("..", menu=True)
     cmds.menuItem(divider=True)
+    cmds.menuItem(label=t("menu_resolucion"), subMenu=True)
+    from arboles.texturas import RESOLUCIONES
+    actual = cargar_ajustes().resolucion_texturas
+    cmds.radioMenuItemCollection()
+    for resolucion in RESOLUCIONES:
+        cmds.menuItem(label=t("resolucion_" + resolucion), radioButton=(resolucion == actual),
+                      command=lambda *_, r=resolucion: _resolucion(r))
+    cmds.setParent("..", menu=True)
     cmds.menuItem(label=t("menu_carpeta"), command=lambda *_: bienvenida(forzar=True))
     cmds.menuItem(label=t("menu_materiales"), command=lambda *_: _crear_materiales())
     cmds.menuItem(divider=True)

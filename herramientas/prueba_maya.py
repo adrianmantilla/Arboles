@@ -1,4 +1,4 @@
-"""Prueba de las fases 0 a 3 dentro de Maya, sin interfaz (herramienta de desarrollo).
+"""Prueba de las fases 0 a 4 dentro de Maya, sin interfaz (herramienta de desarrollo).
 
 Desde la terminal, con el mayapy de cada versión:
 
@@ -116,9 +116,68 @@ def main():
     comprobar(construir_maya.triangulos(grupo) == denso, "el follaje sobrevive a guardar y abrir")
 
     fase2(cmds, tmp)
+    texturas(cmds, tmp)
 
     cmds.unloadPlugin("arboles_plugin")
     comprobar(not cmds.pluginInfo("arboles_plugin", query=True, loaded=True), "el plugin se descarga")
+
+
+def _png(ruta, color):
+    """PNG de 4x4 de un color, sin bibliotecas externas."""
+    import struct
+    import zlib
+
+    def trozo(tipo, datos):
+        return struct.pack(">I", len(datos)) + tipo + datos + struct.pack(">I", zlib.crc32(tipo + datos) & 0xffffffff)
+    filas = b"".join(b"\x00" + bytes(color) * 4 for _ in range(4))
+    os.makedirs(os.path.dirname(ruta), exist_ok=True)
+    with open(ruta, "wb") as f:
+        f.write(b"\x89PNG\r\n\x1a\n" + trozo(b"IHDR", struct.pack(">IIBBBBB", 4, 4, 8, 2, 0, 0, 0))
+                + trozo(b"IDAT", zlib.compress(filas)) + trozo(b"IEND", b""))
+
+
+def texturas(cmds, tmp):
+    """Material por especie: juego de prueba en una carpeta temporal."""
+    print("Texturas por especie")
+    from arboles import construir_maya as cm, especies, materiales
+    from arboles import texturas as tx
+    carpeta = os.path.join(tmp, "texturas")
+    original = tx.carpeta_texturas
+    tx.carpeta_texturas = lambda: carpeta
+    try:
+        for res in ("512", "1k"):
+            for parte, canales in (("corteza", ("color", "normal", "rugosidad")),
+                                   ("hoja", ("color", "normal", "rugosidad", "translucidez"))):
+                for canal in canales:
+                    _png(os.path.join(carpeta, "roble", res, "{}_{}.png".format(parte, canal)), (90, 120, 60))
+        comprobar(tx.existe("roble") and not tx.existe("haya"), "juego de texturas «roble» instalado (prueba)")
+        roble = especies.ESPECIES["roble"]()
+        cm.preparar(roble)
+        comprobar(cmds.objExists("arboles_roble_corteza") and cmds.objExists("arboles_roble_hoja"),
+                  "preparar crea los materiales del roble")
+        grupo = cm.crear(roble, "bajo", "prueba_roble")
+        tronco = cmds.listRelatives(cm.mallas(grupo)[0], shapes=True, fullPath=True)[0]
+        comprobar(cm.grupo_de("arboles_roble_corteza") in (cmds.listConnections(tronco, type="shadingEngine") or []),
+                  "el tronco del roble usa su corteza con texturas")
+        ruta = cmds.getAttr("arboles_roble_corteza_color.fileTextureName")
+        comprobar(os.path.normpath(ruta).endswith(os.path.join("1k", "corteza_color.png")), "texturas a 1K por defecto")
+        comprobar(cmds.isConnected("arboles_roble_corteza_relieve.outNormal", "arboles_roble_corteza.normalCamera"),
+                  "mapa de normales conectado")
+        comprobar(cmds.isConnected("arboles_roble_hoja_translucidez.outColor", "arboles_roble_hoja.subsurfaceColor"),
+                  "translucidez de la hoja conectada")
+        cambiadas = materiales.cambiar_resolucion("512")
+        ruta = cmds.getAttr("arboles_roble_corteza_color.fileTextureName")
+        comprobar(cambiadas == 7 and os.sep + "512" + os.sep in os.path.normpath(ruta),
+                  "cambiar la resolución a 512 ({} imágenes)".format(cambiadas))
+        haya = especies.ESPECIES["haya"]()
+        cm.preparar(haya)
+        otro = cm.crear(haya, "bajo", "prueba_haya")
+        tronco = cmds.listRelatives(cm.mallas(otro)[0], shapes=True, fullPath=True)[0]
+        comprobar(cm.grupo_de(cm.CORTEZA) in (cmds.listConnections(tronco, type="shadingEngine") or []),
+                  "una especie sin texturas instaladas se queda en clay")
+        cmds.delete(grupo, otro)
+    finally:
+        tx.carpeta_texturas = original
 
 
 def fase2(cmds, tmp):

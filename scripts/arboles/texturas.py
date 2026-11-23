@@ -7,7 +7,7 @@ por canal::
     hoja_color      hoja_normal      hoja_rugosidad   hoja_translucidez
 
 Formatos: .png, .jpg, .tif o .exr. Si falta la resolución pedida se usa la más
-cercana que haya. Un árbol con material «clay», o con un juego que no existe,
+cercana que haya (a igual distancia, la menor). Un árbol con material «clay», o con un juego que no existe,
 se queda en clay.
 
 La corteza es repetible: su UV da una vuelta entera de textura por cada
@@ -45,7 +45,8 @@ def existe(juego, carpeta=None):
 
 def _orden_resoluciones(resolucion):
     i = RESOLUCIONES.index(resolucion) if resolucion in RESOLUCIONES else RESOLUCIONES.index(RESOLUCION_POR_DEFECTO)
-    return sorted(RESOLUCIONES, key=lambda r: (abs(RESOLUCIONES.index(r) - i), -RESOLUCIONES.index(r)))
+    # A igual distancia, la más pequeña: pesa menos en los ordenadores del aula.
+    return sorted(RESOLUCIONES, key=lambda r: (abs(RESOLUCIONES.index(r) - i), RESOLUCIONES.index(r)))
 
 
 def ruta(juego, parte, canal, resolucion=RESOLUCION_POR_DEFECTO, carpeta=None):
