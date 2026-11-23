@@ -166,3 +166,52 @@ class PruebaMaterialDelArbol(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PruebaMaterialesPropios(unittest.TestCase):
+    def setUp(self):
+        from arboles import materiales_propios as mp
+        self.mp = mp
+        self.bib = tempfile.mkdtemp()
+        self.origen = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.bib)
+        self.addCleanup(shutil.rmtree, self.origen)
+        antes = list(tx.CARPETAS_EXTRA)
+        self.addCleanup(lambda: tx.CARPETAS_EXTRA.__setitem__(slice(None), antes))
+
+    def _img(self, nombre):
+        ruta = os.path.join(self.origen, nombre)
+        with open(ruta, "wb") as f:
+            f.write(b"x")
+        return ruta
+
+    def test_crear_y_usar(self):
+        juego = self.mp.crear(self.bib, "Mi Corteza Áspera", {
+            ("corteza", "color"): self._img("c.PNG"), ("corteza", "normal"): self._img("n.jpeg")})
+        self.assertEqual(juego, "propio_mi_corteza_aspera")
+        self.mp.registrar(self.bib)
+        self.assertTrue(tx.existe(juego))
+        self.assertEqual(self.mp.lista(self.bib), [juego])
+        self.assertEqual(self.mp.nombre_visible(juego), "Mi Corteza Áspera")
+        self.assertTrue(tx.ruta(juego, "corteza", "color", "2k").endswith(os.path.join("1k", "corteza_color.png")))
+        self.assertTrue(tx.ruta(juego, "corteza", "normal", "512").endswith("corteza_normal.jpg"))
+        self.assertIsNone(tx.ruta(juego, "hoja", "color"))
+        # Los estilos caen al realista: el material propio se ve igual en cartoon
+        self.assertEqual(tx.ruta(juego, "corteza", "color", estilo="cartoon"), tx.ruta(juego, "corteza", "color"))
+
+    def test_rehacer_quita_las_imagenes_viejas(self):
+        self.mp.crear(self.bib, "m", {("corteza", "color"): self._img("a.png"), ("corteza", "normal"): self._img("b.png")})
+        juego = self.mp.crear(self.bib, "m", {("hoja", "color"): self._img("h.png")})
+        self.mp.registrar(self.bib)
+        self.assertIsNone(tx.ruta(juego, "corteza", "normal"))
+        self.assertIsNotNone(tx.ruta(juego, "hoja", "color"))
+
+    def test_hace_falta_un_color(self):
+        with self.assertRaises(ValueError):
+            self.mp.crear(self.bib, "m", {("corteza", "normal"): self._img("n.png")})
+        with self.assertRaises(ValueError):
+            self.mp.crear(self.bib, "m", {("corteza", "color"): self._img("c.psd")})
+
+    def test_no_choca_con_las_especies(self):
+        self.assertTrue(self.mp.nombre_juego("roble").startswith("propio_"))
+        self.assertFalse(self.mp.es_propio("roble"))

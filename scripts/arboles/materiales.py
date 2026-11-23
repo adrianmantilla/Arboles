@@ -143,3 +143,24 @@ def cambiar_texturas(resolucion, estilo=tx.ESTILO_POR_DEFECTO):
 
 def cambiar_resolucion(resolucion, estilo=tx.ESTILO_POR_DEFECTO):
     return cambiar_texturas(resolucion, estilo)
+
+
+def rehacer_material_texturas(juego, resolucion=None, estilo=None):
+    """Borra y vuelve a crear los materiales de ``juego`` (p. ej. un material propio con imágenes
+    nuevas), y los devuelve a las mismas mallas. Devuelve cuántos materiales ha rehecho."""
+    from arboles import construir_maya as cm
+    resolucion = resolucion or cm.resolucion_texturas()
+    estilo = estilo or cm.estilo_texturas()
+    rehechos = 0
+    for parte in ("corteza", "hoja"):
+        nombre = nombre_material(juego, parte)
+        if nombre in CLAY or not cmds.objExists(nombre):
+            continue
+        viejo = _grupo(nombre)
+        miembros = cmds.sets(viejo, query=True) or []
+        cmds.delete([n for n in cmds.ls(nombre + "_*") if cmds.objExists(n)] + [nombre, viejo])
+        _, nuevo = crear_material_texturas(juego, parte, resolucion, estilo)
+        if miembros:
+            cmds.sets(miembros, edit=True, forceElement=nuevo)
+        rehechos += 1
+    return rehechos

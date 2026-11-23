@@ -61,6 +61,9 @@ def texto_material(clave):
     from arboles import texturas
     if clave == texturas.CLAY:
         return t("material_clay")
+    from arboles import materiales_propios
+    if materiales_propios.es_propio(clave):
+        return t("material_propio_nombre", nombre=materiales_propios.nombre_visible(clave))
     nombre = t("plantilla_" + clave)
     nombre = clave if nombre == "plantilla_" + clave else nombre
     return nombre if texturas.existe(clave) else t("material_sin_texturas", nombre=nombre)
@@ -235,6 +238,7 @@ class VentanaEditor(QtWidgets.QDialog):
             self.material.addItem(texto_material(clave), clave)
         self.material.activated.connect(self._cambiar_material)
         arriba.addWidget(self.material)
+        arriba.addWidget(self._boton("boton_material_propio", self._material_propio))
         arriba.addWidget(self._boton("boton_abrir", self._abrir))
         arriba.addWidget(self._boton("boton_guardar", self._guardar))
         capa.addLayout(arriba)
@@ -474,6 +478,24 @@ class VentanaEditor(QtWidgets.QDialog):
         material = self.material.currentData()
         if material and material != self.editor.arbol.material:
             self.editor.cambiar_material(material)
+
+    def _material_propio(self):
+        from arboles import materiales_propios_ui
+        juego = materiales_propios_ui.pedir(self, interfaz_maya.carpeta_biblioteca())
+        if not juego:
+            return
+        indice = self.material.findData(juego)
+        if indice < 0:
+            self.material.addItem(texto_material(juego), juego)
+            indice = self.material.findData(juego)
+        else:
+            self.material.setItemText(indice, texto_material(juego))
+        self.material.setCurrentIndex(indice)
+        if juego == self.editor.arbol.material:
+            # Mismo nombre con imágenes nuevas: rehace el material de la escena
+            from arboles import materiales
+            materiales.rehacer_material_texturas(juego)
+        self._cambiar_material()
 
     def _anadir(self):
         nuevo = self.editor.anadir_rama(self._ids[0])

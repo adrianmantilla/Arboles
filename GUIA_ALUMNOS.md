@@ -99,8 +99,20 @@ En **Árboles › Estilo de texturas** eliges el aspecto de todas las especies: 
 **Cartoon** (colores planos, casi sin brillo) o **Estilizado** (como pintado a mano).
 También cambia los árboles que ya tienes en la escena.
 
-También puedes asignar tus propios materiales. Las UVs de la corteza son limpias: cualquier
-textura repetible encaja.
+### Tu propio material
+
+En el editor, **Material propio…** te deja usar tus imágenes:
+
+- **Corteza**: color (y, si los tienes, relieve y rugosidad). Debe ser **repetible**, sin
+  costuras: las UVs de la corteza dan vueltas enteras alrededor de cada rama.
+- **Hoja**: una sola hoja de pie, con el tallo abajo, la punta arriba y el nervio en el
+  centro. El plugin la repite en cuatro tonos para que el follaje no sea de un verde uniforme.
+
+Hace falta al menos un color. El material se guarda en tu biblioteca (carpeta `materiales`)
+y aparece en la lista **Material** con «(propio)». Si pasas tu biblioteca a otro ordenador,
+tus materiales van con ella. Los estilos Cartoon y Estilizado no cambian tus imágenes.
+
+También puedes asignar a mano cualquier material de Maya a las mallas del árbol.
 
 ## Si algo falla
 

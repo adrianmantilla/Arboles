@@ -17,7 +17,10 @@ def carpeta_preferencias():
 
 
 def cargar_ajustes():
-    return aj.Ajustes(carpeta_preferencias())
+    ajustes = aj.Ajustes(carpeta_preferencias())
+    from arboles import materiales_propios
+    materiales_propios.registrar(ajustes.carpeta_biblioteca)  # sus materiales propios
+    return ajustes
 
 
 # --- Biblioteca -------------------------------------------------------------
