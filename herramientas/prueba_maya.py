@@ -53,13 +53,37 @@ def main():
     otra_vez = materiales.crear_todos()
     comprobar(creados == otra_vez, "crear materiales dos veces no duplica")
     for nombre, (mat, grupo) in creados.items():
-        comprobar(cmds.nodeType(mat) == "standardSurface", nombre + " es standardSurface")
+        comprobar(cmds.nodeType(mat) == "openPBRSurface", nombre + " es openPBRSurface")
         comprobar(cmds.nodeType(grupo) == "shadingEngine", nombre + " tiene grupo de sombreado")
     esfera = cmds.polySphere()[0]
     materiales.asignar(esfera, "arboles_clay_corteza")
     forma = cmds.listRelatives(esfera, shapes=True)[0]
     comprobar(creados["arboles_clay_corteza"][1] in (cmds.listConnections(forma, type="shadingEngine") or []),
               "asignar material a una malla")
+
+    # Escenas viejas: un standardSurface con textura pasa a OpenPBR sin perder nada
+    viejo = cmds.shadingNode("standardSurface", asShader=True, name="arboles_viejo_hoja")
+    cmds.setAttr(viejo + ".specular", 0.35)
+    cmds.setAttr(viejo + ".thinWalled", 1)
+    cmds.setAttr(viejo + ".subsurface", 0.4)
+    cuadros = cmds.shadingNode("checker", asTexture=True, name="arboles_viejo_hoja_color")
+    cmds.connectAttr(cuadros + ".outColor", viejo + ".baseColor")
+    grupo_viejo = cmds.sets(renderable=True, noSurfaceShader=True, empty=True, name=viejo + "SG")
+    cmds.connectAttr(viejo + ".outColor", grupo_viejo + ".surfaceShader")
+    esfera_vieja = cmds.polySphere()[0]
+    cmds.sets(esfera_vieja, edit=True, forceElement=grupo_viejo)
+    hechos = interfaz_maya.convertir_a_openpbr()
+    comprobar(hechos == ["arboles_viejo_hoja"], "convierte a OpenPBR el material viejo: {}".format(hechos))
+    comprobar(cmds.nodeType("arboles_viejo_hoja") == "openPBRSurface", "el convertido es openPBRSurface")
+    comprobar(abs(cmds.getAttr("arboles_viejo_hoja.specularWeight") - 0.35) < 1e-6
+              and cmds.getAttr("arboles_viejo_hoja.geometryThinWalled")
+              and abs(cmds.getAttr("arboles_viejo_hoja.subsurfaceWeight") - 0.4) < 1e-6,
+              "conserva brillo, pared fina y translucidez")
+    comprobar(cmds.listConnections("arboles_viejo_hoja.baseColor") == [cuadros], "conserva la textura")
+    comprobar(cmds.listConnections("arboles_viejo_hoja.outColor", type="shadingEngine") == [grupo_viejo],
+              "sigue en su grupo de sombreado")
+    comprobar(interfaz_maya.convertir_a_openpbr() == [], "convertir otra vez no hace nada")
+    cmds.delete(esfera_vieja, grupo_viejo, "arboles_viejo_hoja", cuadros)
 
     # Comprobación de la instalación (sin diálogo)
     _, lineas = interfaz_maya.comprobar(mostrar=False)
