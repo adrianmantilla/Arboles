@@ -10,7 +10,7 @@ except ImportError:  # Maya anterior a 2025
     from PySide2 import QtCore, QtGui, QtWidgets
 
 from arboles import construir_maya as cm
-from arboles import interfaz_maya, plantar
+from arboles import estilo, interfaz_maya, plantar
 from arboles import modulos as mod
 from arboles.arbol import SEMAFORO
 from arboles.biblioteca import Biblioteca
@@ -57,7 +57,7 @@ class PanelPlantar(QtWidgets.QDialog):
             padre = _ventana_maya()
         super(PanelPlantar, self).__init__(padre)
         self.setWindowTitle(t("plantar_titulo"))
-        self.setObjectName("ArbolesPlantar")
+        estilo.aplicar(self, "ArbolesPlantar")
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.Tool)
         self.resize(520, 560)
         self._construir()
@@ -108,13 +108,15 @@ class PanelPlantar(QtWidgets.QDialog):
         for clave, funcion in (("boton_plantar_clic", self._plantar), ("boton_desligar", self._desligar),
                                ("boton_editar_maestro", self._editar), ("boton_ejemplos", self._ejemplos),
                                ("boton_refrescar", self.refrescar)):
-            botones.addWidget(self._boton(clave, funcion))
+            boton = self._boton(clave, funcion)
+            if clave == "boton_plantar_clic":
+                estilo.primario(boton)
+            botones.addWidget(boton)
         capa.addLayout(botones)
         self.jardin = QtWidgets.QLabel()
         self.jardin.setToolTip(t("ayuda_jardin"))
         capa.addWidget(self.jardin)
-        self.estado = QtWidgets.QLabel()
-        self.estado.setStyleSheet("color: gray;")
+        self.estado = estilo.etiqueta("", "tenue")
         capa.addWidget(self.estado)
 
     def _numero(self, capa, clave, minimo, maximo, paso, valor, sufijo):

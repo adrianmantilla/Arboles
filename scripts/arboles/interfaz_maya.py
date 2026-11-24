@@ -185,8 +185,8 @@ def _acerca():
 
 
 def crear_menu():
-    quitar_menu()
-    cmds.menu(MENU, parent="MayaWindow", label=t("menu_titulo"), tearOff=True)
+    from arboles import pack
+    pack.crear_menu(MENU, t("menu_titulo"))
     cmds.menuItem(label=t("menu_editor"), command=lambda *_: _editor())
     cmds.menuItem(label=t("menu_biblioteca"), command=lambda *_: _plantar())
     cmds.menuItem(label=t("menu_modulos"), subMenu=True, tearOff=True)
@@ -226,8 +226,8 @@ def crear_menu():
 
 
 def quitar_menu():
-    if cmds.menu(MENU, exists=True):
-        cmds.deleteUI(MENU)
+    from arboles import pack
+    pack.quitar_menu(MENU)
 
 
 def iniciar():

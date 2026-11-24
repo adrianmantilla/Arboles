@@ -17,7 +17,7 @@ except ImportError:  # Maya anterior a 2025
     from shiboken2 import wrapInstance
 
 from arboles import construir_maya as cm
-from arboles import ejemplos, follaje, i18n, interfaz_maya
+from arboles import ejemplos, estilo, follaje, i18n, interfaz_maya
 from arboles import modulos as mod
 from arboles.biblioteca import Biblioteca
 from arboles.editor import Editor
@@ -198,7 +198,7 @@ class VentanaEditor(QtWidgets.QDialog):
     def __init__(self, padre=None):
         super(VentanaEditor, self).__init__(padre or _ventana_maya())
         self.setWindowTitle(t("editor_titulo"))
-        self.setObjectName("ArbolesEditor")
+        estilo.aplicar(self, "ArbolesEditor")  # la línea de Materials, compartida con MantiTools
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.Tool)
         self.resize(720, 640)
         try:
@@ -333,10 +333,11 @@ class VentanaEditor(QtWidgets.QDialog):
             b.setToolTip(t("ayuda_generar"))
             b.clicked.connect(lambda _=False, n=nivel: self._generar(n))
             self.generar[nivel] = b
+            if nivel == "medio":
+                estilo.primario(b)
             abajo.addWidget(b)
         capa.addLayout(abajo)
-        self.estado = QtWidgets.QLabel()
-        self.estado.setStyleSheet("color: gray;")
+        self.estado = estilo.etiqueta("", "tenue")
         capa.addWidget(self.estado)
 
     # --- refresco ---------------------------------------------------------------------

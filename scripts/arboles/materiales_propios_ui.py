@@ -7,7 +7,7 @@ try:
 except ImportError:  # Maya anterior a 2025
     from PySide2 import QtWidgets
 
-from arboles import materiales_propios
+from arboles import estilo, materiales_propios
 from arboles.i18n import t
 
 # (parte, canal) en el orden del diálogo
@@ -22,11 +22,12 @@ class DialogoMaterialPropio(QtWidgets.QDialog):
         self.carpeta_biblioteca = carpeta_biblioteca
         self.juego = None
         self.setWindowTitle(t("material_propio_titulo"))
+        estilo.aplicar(self, "ArbolesMaterialPropio")
         capa = QtWidgets.QVBoxLayout(self)
         explicacion = QtWidgets.QLabel(t("material_propio_explicacion"))
         explicacion.setWordWrap(True)
         capa.addWidget(explicacion)
-        formulario = QtWidgets.QFormLayout()
+        formulario = estilo.formulario()
         self.nombre = QtWidgets.QLineEdit()
         formulario.addRow(t("material_propio_nombre_campo"), self.nombre)
         self.rutas = {}
@@ -42,7 +43,7 @@ class DialogoMaterialPropio(QtWidgets.QDialog):
             self.rutas[(parte, canal)] = campo
         capa.addLayout(formulario)
         botones = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
-        botones.button(QtWidgets.QDialogButtonBox.Ok).setText(t("material_propio_crear"))
+        estilo.primario(botones.button(QtWidgets.QDialogButtonBox.Ok)).setText(t("material_propio_crear"))
         botones.button(QtWidgets.QDialogButtonBox.Cancel).setText(t("boton_cancelar"))
         botones.accepted.connect(self._crear)
         botones.rejected.connect(self.reject)
