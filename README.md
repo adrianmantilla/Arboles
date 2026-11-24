@@ -10,6 +10,8 @@ puede usar cualquiera que trabaje con Maya.
 
 *[English summary below](#english).*
 
+![Un jardín hecho con Árboles, renderizado con Arnold](docs/imagenes/hero.jpg)
+
 ## Qué hace
 
 - **Editor en tiempo real**: tronco y ramas como tubos sobre curvas que puedes doblar a mano, con
@@ -26,6 +28,8 @@ puede usar cualquiera que trabaje con Maya.
 - **Texturas** de corteza y hoja para cada especie en 512, 1K, 2K y 4K, en tres estilos
   (realista, cartoon y estilizado), materiales *clay* para modelar y tus propios materiales.
 - **Todo se deshace** con Ctrl+Z (Cmd+Z en Mac).
+
+![Las 19 especies de serie](docs/imagenes/especies.jpg)
 
 ## Requisitos
 
@@ -62,6 +66,8 @@ el Plug-in Manager. Tu biblioteca no se borra.
 
 ## Primeros pasos
 
+![El editor de árboles con el roble de serie en el visor de Maya](docs/imagenes/editor.png)
+
 1. **Árboles › Editor de árboles…** En **Empezar desde** elige una especie y su frondosidad, y
    pulsa **Empezar**.
 2. Haz clic en una rama (en la lista o en el visor) y mueve los deslizadores. Si dejas el ratón
@@ -71,6 +77,15 @@ el Plug-in Manager. Tu biblioteca no se borra.
 4. **Árboles › Plantar desde la biblioteca…**, elige el árbol y pulsa **Plantar con clic**. Cada
    clic en el visor planta uno. **Esc** para terminar. (¿Biblioteca vacía? Pulsa **Ejemplos**.)
 5. Para cambiar todas las copias: selecciona una, **Editar maestro**, cambia y guarda.
+
+**Peso**, de 0 a 1, en el roble de serie: las ramas se doblan y el árbol cambia de carácter.
+
+![El deslizador Peso dobla las ramas del roble en tiempo real](docs/imagenes/peso.gif)
+
+**Plantar y editar el maestro**: cada clic planta una copia; al guardar el maestro con otro
+material, cambian las ocho a la vez.
+
+![Plantar con clic y actualizar todas las copias desde el maestro](docs/imagenes/jardin.gif)
 
 La [guía rápida](GUIA_ALUMNOS.md) lo explica paso a paso, con todos los tipos de hoja, el
 semáforo de triángulos, las texturas, los materiales propios y qué hacer si algo falla.
@@ -94,6 +109,10 @@ Cada especie trae su corteza (color, relieve y rugosidad, repetible) y su hoja (
 rugosidad y trasluz). El desplegable **Material** del editor elige las de qué especie usa tu
 árbol, o **Clay**, gris neutro para modelar. En el visor se ven con el modo texturizado
 (tecla **6**). Con **Material propio…** puedes usar tus imágenes (la corteza debe ser repetible).
+
+El menú **Estilo de texturas** cambia el aspecto de todos los árboles de la escena:
+
+![Los mismos árboles en estilo realista, cartoon y estilizado](docs/imagenes/estilos.jpg)
 
 Las texturas están en `texturas/<especie>/<resolución>/`; el formato está en
 [texturas/LEEME.md](texturas/LEEME.md). Si no necesitas 4K, puedes borrar esas carpetas para
