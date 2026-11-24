@@ -121,6 +121,17 @@ def _crear_materiales():
     print(t("materiales_listos", nombres=", ".join(sorted(creados))))
 
 
+def convertir_a_openpbr():
+    """Convierte a OpenPBR los materiales de Árboles de escenas viejas y dice cuántos."""
+    from arboles import materiales, openpbr
+    if not openpbr.disponible():
+        cmds.warning(t("openpbr_no_disponible"))
+        return []
+    hechos = materiales.convertir_a_openpbr()
+    print(t("openpbr_convertidos", n=len(hechos)))
+    return hechos
+
+
 def _arbol_ejemplo():
     from arboles import construir_maya, ejemplos
     construir_maya.preparar()
@@ -185,8 +196,8 @@ def _acerca():
 
 
 def crear_menu():
-    quitar_menu()
-    cmds.menu(MENU, parent="MayaWindow", label=t("menu_titulo"), tearOff=True)
+    from arboles import pack
+    pack.crear_menu(MENU, t("menu_titulo"))
     cmds.menuItem(label=t("menu_editor"), command=lambda *_: _editor())
     cmds.menuItem(label=t("menu_biblioteca"), command=lambda *_: _plantar())
     cmds.menuItem(label=t("menu_modulos"), subMenu=True, tearOff=True)
@@ -219,6 +230,8 @@ def crear_menu():
     cmds.setParent("..", menu=True)
     cmds.menuItem(label=t("menu_carpeta"), command=lambda *_: bienvenida(forzar=True))
     cmds.menuItem(label=t("menu_materiales"), command=lambda *_: _crear_materiales())
+    cmds.menuItem(label=t("menu_openpbr"), annotation=t("ayuda_menu_openpbr"),
+                  command=lambda *_: convertir_a_openpbr())
     cmds.menuItem(divider=True)
     cmds.menuItem(label=t("menu_comprobar"), command=lambda *_: comprobar())
     cmds.menuItem(label=t("menu_acerca"), command=lambda *_: _acerca())
@@ -226,8 +239,8 @@ def crear_menu():
 
 
 def quitar_menu():
-    if cmds.menu(MENU, exists=True):
-        cmds.deleteUI(MENU)
+    from arboles import pack
+    pack.quitar_menu(MENU)
 
 
 def iniciar():
